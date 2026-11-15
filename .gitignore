@@ -1,0 +1,7 @@
+build.nx/
+*.nro
+*.elf
+*.nacp
+resources/shaders/
+config.json
+__pycache__/
