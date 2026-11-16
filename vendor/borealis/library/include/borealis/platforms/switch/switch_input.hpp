@@ -30,6 +30,7 @@ class SwitchInputManager : public InputManager
     SwitchInputManager();
 
     void updateControllerState(ControllerState* state);
+    TouchState updateTouchState() override;
 
   private:
     PadState padState;

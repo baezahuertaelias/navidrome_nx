@@ -35,6 +35,9 @@ ScrollingFrame::ScrollingFrame()
 
 void ScrollingFrame::draw(NVGcontext* vg, float x, float y, float width, float height, Style style, FrameContext* ctx)
 {
+    // Parent position can change without changing this frame's measured size.
+    if (this->contentView) this->contentView->setDetachedPosition(x, y);
+
     // Update scrolling - try until it works
     if (this->updateScrollingOnNextFrame && this->updateScrolling(false))
         this->updateScrollingOnNextFrame = false;
@@ -75,6 +78,10 @@ void ScrollingFrame::setContentView(View* view)
 
     // Setup the view and add it
     this->contentView = view;
+    this->scrollY.stop();
+    this->scrollY = 0.0f;
+    this->childFocused = false;
+    this->updateScrollingOnNextFrame = true;
 
     view->detach();
     view->setCulled(false);
@@ -132,10 +139,10 @@ void ScrollingFrame::prebakeScrolling()
 
 void ScrollingFrame::startScrolling(bool animated, float newScroll)
 {
+    this->scrollY.stop();
+
     if (newScroll == this->scrollY)
         return;
-
-    this->scrollY.stop();
 
     if (animated)
     {
@@ -157,6 +164,18 @@ void ScrollingFrame::startScrolling(bool animated, float newScroll)
     }
 
     this->invalidate();
+}
+
+bool ScrollingFrame::onTouchScroll(float, float dy)
+{
+    const float height = this->getContentHeight();
+    if (!dy || height <= this->getHeight()) return false;
+    this->childFocused = false;
+    this->updateScrollingOnNextFrame = false;
+    const float offset = std::max(0.0f, std::min(height - this->getHeight(), this->scrollY * height - dy));
+    this->startScrolling(false, offset / height);
+    this->scrollAnimationTick();
+    return true;
 }
 
 void ScrollingFrame::setScrollingBehavior(ScrollingBehavior behavior)

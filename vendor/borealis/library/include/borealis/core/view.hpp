@@ -190,6 +190,7 @@ class View
     enum Sound focusSound = SOUND_FOCUS_CHANGE;
 
     bool hideHighlightBackground = false;
+    bool hideHighlight = false;
 
     bool detached         = false;
     float detachedOriginX = 0.0f;
@@ -496,6 +497,7 @@ class View
      * Sets the visibility of the view.
      */
     void setVisibility(Visibility visibility);
+    Visibility getVisibility() const { return this->visibility; }
 
     /**
      * Sets the top position of the view, in pixels.
@@ -736,6 +738,8 @@ class View
     {
         this->hideHighlightBackground = hide;
     }
+
+    void setHideHighlight(bool hide) { this->hideHighlight = hide; }
 
     /**
      * Sets the highlight padding of the view, aka the space between the
@@ -1034,6 +1038,11 @@ class View
     {
         return this->ygNode;
     }
+
+    inline static unsigned long long nextTouchId = 0;
+    const unsigned long long touchId = ++nextTouchId;
+    virtual View* hitTest(float x, float y);
+    virtual bool onTouchScroll(float dx, float dy) { return false; }
 
     const std::vector<Action>& getActions()
     {

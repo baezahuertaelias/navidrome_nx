@@ -2832,6 +2832,28 @@ float nvgTextBounds(NVGcontext* ctx, float x, float y, const char* string, const
 	return width * invscale;
 }
 
+// Navidrome NX extension for optical icon centering; ordinary text metrics are unchanged.
+void nvgTextGlyphBounds(NVGcontext* ctx, float x, float y, const char* string, const char* end, float* bounds)
+{
+    NVGstate* state = nvg__getState(ctx);
+    float scale = nvg__getFontScale(state) * ctx->devicePxRatio;
+    FONStextIter iter;
+    FONSquad quad;
+    int first = 1;
+    bounds[0] = bounds[1] = bounds[2] = bounds[3] = 0;
+    if (state->fontId == FONS_INVALID || scale <= 0) return;
+    nvgTextBounds(ctx, x, y, string, end, NULL);
+    fonsTextIterInit(ctx->fs, &iter, x * scale, y * scale, string, end, FONS_GLYPH_BITMAP_OPTIONAL);
+    while (fonsTextIterNext(ctx->fs, &iter, &quad)) {
+        if (iter.prevGlyphIndex < 0) continue;
+        if (first || quad.x0 / scale < bounds[0]) bounds[0] = quad.x0 / scale;
+        if (first || quad.y0 / scale < bounds[1]) bounds[1] = quad.y0 / scale;
+        if (first || quad.x1 / scale > bounds[2]) bounds[2] = quad.x1 / scale;
+        if (first || quad.y1 / scale > bounds[3]) bounds[3] = quad.y1 / scale;
+        first = 0;
+    }
+}
+
 void nvgTextBoxBounds(NVGcontext* ctx, float x, float y, float breakRowWidth, const char* string, const char* end, float* bounds)
 {
 	NVGstate* state = nvg__getState(ctx);

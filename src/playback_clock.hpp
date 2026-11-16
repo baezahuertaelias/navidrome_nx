@@ -21,7 +21,10 @@ public:
     void pause(Clock::time_point now = Clock::now()) {
         if (running) { accumulated += now - started; running = false; }
     }
+    long long milliseconds(Clock::time_point now = Clock::now()) const {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(accumulated + (running ? now - started : Clock::duration::zero())).count();
+    }
     long long seconds(Clock::time_point now = Clock::now()) const {
-        return std::chrono::duration_cast<std::chrono::seconds>(accumulated + (running ? now - started : Clock::duration::zero())).count();
+        return milliseconds(now) / 1000;
     }
 };

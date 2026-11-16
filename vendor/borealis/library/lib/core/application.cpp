@@ -191,6 +191,10 @@ bool Application::mainLoop()
     }
 
     oldControllerState = controllerState;
+    auto touch = inputManager->updateTouchState();
+    touch.x *= Application::contentWidth / 1280.0f;
+    touch.y *= Application::contentHeight / 720.0f;
+    Application::onTouchState(touch);
 
     // Animations
     updateHighlightAnimation();
@@ -200,6 +204,39 @@ bool Application::mainLoop()
     Application::frame();
 
     return true;
+}
+
+void Application::onTouchState(TouchState state)
+{
+    static TouchGesture gesture;
+    static unsigned long long rootId = 0, targetId = 0;
+    if (Application::blockInputsTokens || Application::activitiesStack.empty()) { gesture.cancel(); rootId = targetId = 0; return; }
+    auto root = Application::activitiesStack.back()->getContentView();
+    const auto event = gesture.update(state);
+    auto hit = root->hitTest(event.x, event.y);
+    auto clickable = [](View* view) -> View* {
+        for (; view; view = view->getParent())
+            for (const auto& action : view->getActions())
+                if (action.button == BUTTON_A && action.available && view->isFocusable()) return view;
+        return nullptr;
+    };
+    if (event.phase == TouchPhase::START) {
+        rootId = root->touchId;
+        auto target = clickable(hit); targetId = target ? target->touchId : 0;
+    } else if (rootId == root->touchId && event.phase == TouchPhase::DRAG) {
+        for (auto view = hit; view; view = view->getParent())
+            if (view->onTouchScroll(event.dx, event.dy)) break;
+    } else if (rootId == root->touchId && event.phase == TouchPhase::TAP) {
+        auto target = clickable(hit);
+        if (!target || target->touchId != targetId) return;
+        Application::giveFocus(target);
+        for (const auto& action : target->getActions()) {
+            if (action.button != BUTTON_A || !action.available) continue;
+            // The callback may replace this tree; keep no references into it afterwards.
+            auto listener = action.actionListener;
+            target->playClickAnimation(); listener(target); break;
+        }
+    }
 }
 
 Platform* Application::getPlatform()
@@ -557,6 +594,8 @@ void Application::pushActivity(Activity* activity, TransitionAnimation animation
     // Create the activity content view
     activity->setContentView(activity->createContentView());
     activity->onContentAvailable();
+    // New views start visible; hide first so show() starts the fade-in from alpha zero.
+    activity->hide([] {}, false, 0);
 
     // Call hide() on the previous activity in the stack if no
     // activities are translucent, then call show() once the animation ends

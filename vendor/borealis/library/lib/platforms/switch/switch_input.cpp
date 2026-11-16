@@ -49,6 +49,7 @@ static const uint64_t SWITCH_BUTTONS_MAPPING[_BUTTON_MAX] = {
 
 SwitchInputManager::SwitchInputManager()
 {
+    hidInitializeTouchScreen();
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
     padInitializeDefault(&this->padState);
 }
@@ -65,4 +66,11 @@ void SwitchInputManager::updateControllerState(ControllerState* state)
     }
 }
 
+TouchState SwitchInputManager::updateTouchState()
+{
+    HidTouchScreenState state{};
+    if (hidGetTouchScreenStates(&state, 1) <= 0 || state.count == 0) return {};
+    if (state.count != 1) return {false, 0, 0, true};
+    return {true, static_cast<float>(state.touches[0].x), static_cast<float>(state.touches[0].y)};
+}
 } // namespace brls

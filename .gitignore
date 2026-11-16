@@ -5,3 +5,17 @@ build.nx/
 resources/shaders/
 config.json
 __pycache__/
+dist/
+*.ovl
+*.nsp
+*.nso
+*.npdm
+*.a
+*.o
+*.d
+*.map
+overlay/build/
+vendor/sys-tune/sys-tune/build/
+vendor/sys-tune/sys-tune/nxExt/build/
+config.json.tmp
+config.json.bak

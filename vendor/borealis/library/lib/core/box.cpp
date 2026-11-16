@@ -291,6 +291,9 @@ void Box::setPaddingLeft(float left)
 
 View* Box::getDefaultFocus()
 {
+    if (this->getVisibility() != Visibility::VISIBLE)
+        return nullptr;
+
     // Focus ourself first
     if (this->isFocusable())
         return this;
@@ -590,4 +593,11 @@ View* Padding::create()
     return new Padding();
 }
 
+View* Box::hitTest(float x, float y)
+{
+    if (!View::hitTest(x, y)) return nullptr;
+    for (auto child = children.rbegin(); child != children.rend(); ++child)
+        if (auto hit = (*child)->hitTest(x, y)) return hit;
+    return this;
+}
 } // namespace brls

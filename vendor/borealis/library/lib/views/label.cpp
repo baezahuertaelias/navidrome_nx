@@ -53,6 +53,7 @@ static YGSize labelMeasureFunc(YGNodeRef node, float width, YGMeasureMode widthM
     NVGcontext* vg       = Application::getNVGContext();
     Label* label         = (Label*)YGNodeGetContext(node);
     std::string fullText = label->getFullText();
+    label->setIsWrapping(false);
 
     YGSize size = {
         .width  = width,
@@ -60,7 +61,11 @@ static YGSize labelMeasureFunc(YGNodeRef node, float width, YGMeasureMode widthM
     };
 
     if (fullText == "")
+    {
+        label->setRequiredWidth(0);
+        label->setEllipsisWidth(0);
         return size;
+    }
 
     // XXX: workaround for a Yoga bug
     if (widthMode == YGMeasureModeAtMost && (width == 0 || std::isnan(width)))
@@ -194,6 +199,11 @@ Label::Label()
         this->setFontSize(value);
     });
 
+    this->registerStringXMLAttribute("font", [this](std::string name) {
+        this->font = Application::getFont(name);
+        this->invalidate();
+    });
+
     this->registerColorXMLAttribute("textColor", [this](NVGcolor color) {
         this->setTextColor(color);
     });
@@ -201,6 +211,8 @@ Label::Label()
     this->registerFloatXMLAttribute("lineHeight", [this](float value) {
         this->setLineHeight(value);
     });
+
+    this->registerBoolXMLAttribute("glyphCentered", [this](bool value) { this->glyphCentered = value; });
 
     this->registerBoolXMLAttribute("animated", [this](bool value) {
         this->setAnimated(value);
@@ -392,8 +404,17 @@ void Label::draw(NVGcontext* vg, float x, float y, float width, float height, St
     nvgTextLineHeight(vg, this->lineHeight);
     nvgFillColor(vg, a(this->textColor));
 
+    // Icon fallback fonts have different ascenders; center the visible glyph itself.
+    if (this->glyphCentered)
+    {
+        nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
+        float bounds[4];
+        nvgTextGlyphBounds(vg, 0, 0, this->fullText.c_str(), nullptr, bounds);
+        nvgText(vg, x + (width - bounds[2] - bounds[0]) / 2,
+            y + (height - bounds[3] - bounds[1]) / 2, this->fullText.c_str(), nullptr);
+    }
     // Animated text
-    if (this->animating)
+    else if (this->animating)
     {
         nvgSave(vg);
         nvgIntersectScissor(vg, x, y, width, height);
@@ -516,6 +537,9 @@ void Label::onLayout()
         this->resetScrollingAnimation();
         return;
     }
+
+    // Yoga can skip the measure callback when both dimensions are fixed.
+    labelMeasureFunc(this->getYGNode(), width, YGMeasureModeExactly, this->getHeight(), YGMeasureModeExactly);
 
     // Prebake clipping
     if (width < this->requiredWidth && !this->isWrapping)

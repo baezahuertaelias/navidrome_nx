@@ -58,6 +58,7 @@ class Application
      * Must be called in an infinite loop until it returns false.
      */
     static bool mainLoop();
+    static void onTouchState(TouchState state);
 
     static Platform* getPlatform();
     static AudioPlayer* getAudioPlayer();

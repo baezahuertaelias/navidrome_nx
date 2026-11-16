@@ -53,6 +53,8 @@ Button::Button()
     this->inflateFromXMLString(buttonXML);
 
     this->forwardXMLAttribute("text", this->label);
+    this->forwardXMLAttribute("font", this->label);
+    this->forwardXMLAttribute("glyphCentered", this->label);
     this->forwardXMLAttribute("singleLine", this->label);
     this->forwardXMLAttribute("fontSize", this->label);
     this->forwardXMLAttribute("textColor", this->label);

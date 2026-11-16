@@ -78,16 +78,23 @@ static void loadLocale(std::string locale, nlohmann::json* target)
 
         jsonStream.close();
 
-        (*target)[name.substr(0, name.length() - 5)] = strings;
+        (*target)[name.substr(0, name.length() - 5)].merge_patch(strings);
     }
 }
 
 void loadTranslations()
 {
+    defaultLocale = {};
+    currentLocale = {};
     loadLocale(LOCALE_DEFAULT, &defaultLocale);
 
     std::string currentLocaleName = Application::getLocale();
-    if (currentLocaleName != LOCALE_DEFAULT)
+    // Regional overrides inherit their base language, then English per missing key.
+    const auto separator = currentLocaleName.find('-');
+    const auto base = currentLocaleName.substr(0, separator);
+    if (currentLocaleName != LOCALE_DEFAULT && base != currentLocaleName && std::filesystem::is_directory(BRLS_ASSET("i18n/" + base)))
+        loadLocale(base, &currentLocale);
+    if (currentLocaleName != LOCALE_DEFAULT && std::filesystem::is_directory(BRLS_ASSET("i18n/" + currentLocaleName)))
         loadLocale(currentLocaleName, &currentLocale);
 }
 

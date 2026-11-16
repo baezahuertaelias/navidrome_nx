@@ -48,6 +48,7 @@ class ScrollingFrame : public Box
     void addView(View* view) override;
     void removeView(View* view) override;
     void onLayout() override;
+    bool onTouchScroll(float dx, float dy) override;
     void setPadding(float top, float right, float bottom, float left) override;
     void setPaddingTop(float top) override;
     void setPaddingRight(float right) override;

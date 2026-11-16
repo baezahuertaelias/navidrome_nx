@@ -128,7 +128,7 @@ void View::frame(FrameContext* ctx)
             this->drawBorder(ctx->vg, ctx, style, x, y, width, height);
 
         // Draw highlight background
-        if (this->highlightAlpha > 0.0f && !this->hideHighlightBackground)
+    if (this->highlightAlpha > 0.0f && !this->hideHighlight && !this->hideHighlightBackground)
             this->drawHighlight(ctx->vg, ctx->theme, this->highlightAlpha, style, true);
 
         // Draw click animation
@@ -146,7 +146,7 @@ void View::frame(FrameContext* ctx)
         this->draw(ctx->vg, x, y, width, height, style, ctx);
 
         // Draw highlight
-        if (this->highlightAlpha > 0.0f)
+    if (this->highlightAlpha > 0.0f && !this->hideHighlight)
             this->drawHighlight(ctx->vg, ctx->theme, this->highlightAlpha, style, false);
 
         if (this->wireframeEnabled)
@@ -2032,4 +2032,10 @@ bool View::isWireframeEnabled()
     return this->wireframeEnabled;
 }
 
+View* View::hitTest(float x, float y)
+{
+    if (this->getVisibility() != Visibility::VISIBLE || this->getAlpha() <= 0.01f) return nullptr;
+    return x >= this->getX() && y >= this->getY() && x < this->getX() + this->getWidth()
+        && y < this->getY() + this->getHeight() ? this : nullptr;
+}
 } // namespace brls

@@ -203,7 +203,7 @@ void Image::invalidateImageBounds()
             else
             {
                 this->imageWidth  = this->getWidth();
-                this->imageHeight = this->imageWidth * imageAspectRatio;
+                this->imageHeight = this->imageWidth / imageAspectRatio;
                 this->imageY      = (height - this->imageHeight) / 2.0F;
                 this->imageX      = 0;
             }

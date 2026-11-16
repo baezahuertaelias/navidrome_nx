@@ -15,6 +15,7 @@
 */
 
 #pragma once
+#include <borealis/core/touch.hpp>
 
 namespace brls
 {
@@ -83,6 +84,7 @@ class InputManager
      * Called once every frame to fill the given ControllerState struct with the controller state.
      */
     virtual void updateControllerState(ControllerState* state) = 0;
+    virtual TouchState updateTouchState() { return {}; }
 };
 
 }; // namespace brls

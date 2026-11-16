@@ -1,134 +1,293 @@
 # Navidrome NX
 
-A Nintendo Switch homebrew Navidrome client using Borealis and the Subsonic API.
-Browse albums alphabetically in pages of 50, open an album, and select a track.
-Playback advances through the album. Controls provide previous/next, pause/resume,
-and stop; **+** exits. Network requests run outside the UI thread.
+A Nintendo Switch homebrew music client for Navidrome, built with **Borealis**
+and the Subsonic API. Includes a separate **Ultrahand mini-player** backed by
+sys-tune for background playback.
 
-The library and persistent Now Playing panel sit side by side and follow the
-console's light/dark theme. Album and track rows show separate titles/artists;
-tracks also show numbers, durations, and an accent on the playing track.
-The player shows elapsed/total time and progress (elapsed time is estimated from
-the playback clock; pausing freezes it). Returning to albums preserves the page
-and selected album without a network request.
+Independent third-party software, not affiliated with or endorsed by Navidrome.
 
-Controller shortcuts: **B** returns to albums, **X** pauses/resumes, **L/R** skip
-tracks, **Y** refreshes albums, and **A** selects the focused item. Page buttons
-stay above the list. Unavailable player/page controls are disabled.
+## Features
 
-## Artwork, lyrics, and Favorites
+- **Home:** horizontal artwork shelves for Most played, Favorites, Play again,
+  Discover, and Random songs. Each shelf contains up to 12 items.
+- **Library:** Artists, Albums, Songs, Playlists, and Favorites; artwork, search,
+  ordering, list/grid views, and bottom pagination. Album lists open at the first
+  song; returning preserves the parent page and selection.
+- **Playback:** previous/next, play/pause, stop, automatic queue advancement,
+  elapsed/total time, album art, and a waveform driven by the mixed audio.
+- **Lyrics player:** centered lyrics, timed highlighting with a small enlargement
+  and bold transition, automatic follow, manual scrolling, and three text sizes.
+- **Touchscreen:** tap controls and music cards; swipe lists and lyrics vertically
+  and Home shelves horizontally. Controller navigation remains available.
+- **Song cache:** optional SD cache of up to 15 recently used songs.
+- **Android remote:** browser controls on the same Wi-Fi, paired using a QR code.
+- **Appearance:** animated Bubbles or XMB waves, background opacity, a subtle
+  three-minute Rainbow cycle, AMOLED black, and a collapsible sidebar.
+- **Localization:** English and Spanish selected from the Switch system language.
 
-Album rows show cover thumbnails; the player shows the current track's cover.
-Images load only when visible, outside the UI thread, with a 64-image RAM cache.
-Missing/invalid artwork leaves a blank placeholder and does not stop playback.
-Artwork responses are limited to 512 KiB and 1024×1024 decoded pixels.
+Artists, Albums, and Songs have separate search/order/view choices while the app
+is open. Collections use pages of 50. Artist/song sorting covers the complete
+matching result, up to 50,000 entries; initial loading can take longer on large
+libraries. Playlists queue their complete server-ordered track list. Favorites
+includes **Shuffle all** across all favorite-song pages. Playlist editing and
+changing stars remain in Navidrome.
 
-Choose **Favorites** to view your starred songs, then **Fav albums** to switch to
-starred albums. **Fav songs** switches back; **All albums** returns to the full
-library. Both favorite lists use pages of 50. **Refresh** fetches current stars
-from Navidrome. This app displays favorites; it does not change your stars.
+Home's Most played and Play again shelves use the server's frequent/recent album
+history; Discover uses random albums. Empty or unavailable sections show a
+message. Refresh updates the current page or Home recommendations.
 
-Choose **Lyrics** in the player, or press **ZR**, for the selected track's lyrics.
-Use **Up/Down** to scroll and **B** to return. Music continues playing.
-The client tries `getLyricsBySongId`, then legacy artist/title lookup. It displays
-the first available lyric version as text, including synced sources without timed
-highlighting. Lyrics must exist on your server; unavailable lyrics show an empty
-state. Responses are limited to 256 KiB and 2000 lines.
+## Build the app
 
-## Build with Docker
+Docker must be installed and running; no host Switch SDK is required. The build
+uses `devkitpro/devkita64:20260219`, libnx, SDL2_mixer, curl, Jansson, and mbedTLS.
+Vendored dependencies are included in a normal clone; no submodules are needed.
 
 ```sh
 bash scripts/build.sh
 ```
 
-Produces `navidrome_nx.nro` using `devkitpro/devkita64:20260219`.
-The image includes libnx, SDL2_mixer, curl, Jansson, and mbedTLS.
-Docker must be installed and running. No host Switch SDK installation is needed.
-Borealis source and its resources are included under `vendor/borealis` and
-`resources`; a normal Git clone includes them, with no submodule setup required.
+Output: `navidrome_nx.nro` in the repository root.
 
-## Configure
+For a self-contained Docker artifact export:
 
-Copy `config.example.json` to **`/switch/navidrome_nx/config.json` on the SD card**
-and edit the server URL, username, and password. Include any Navidrome URL prefix,
-for example `https://example.com/music`; do not append `/rest`.
-Settings are read at startup. If the config is missing, create it and choose
-**Refresh**. Restart after changing an existing valid config.
+```sh
+docker build --target artifact --output type=local,dest=dist .
+```
 
-The password is stored as plain text on the SD card. Requests use Subsonic salted
-MD5 token authentication; use HTTPS to protect tokens and music in transit.
-TLS verification stays enabled. Redirects are rejected; configure the final URL.
-The app never writes credentials to logs, downloads to disk, or changes your library.
+Output: `dist/navidrome_nx.nro`. This export does not update the root NRO; copy it
+before using the nxlink script:
 
-## Run and test on Switch with nxlink
+```sh
+cp dist/navidrome_nx.nro navidrome_nx.nro
+```
 
-Use Homebrew Menu with full application memory (title takeover), rather than album
-applet mode. Start its network loader with **Y**, then run:
+## Install and sign in
+
+1. Copy the NRO to `/switch/navidrome_nx/navidrome_nx.nro` on the SD card.
+2. Launch from Homebrew Menu in full-memory mode (title takeover), rather than
+   Album applet mode.
+3. If `/switch/navidrome_nx/config.json` is missing or invalid, the login screen
+   asks for **Server URL**, **Username**, and **Password** using the Switch keyboard.
+4. Select **Test connection**, then **Save and connect** after the test succeeds.
+   Editing a field disables Save until another successful test.
+
+An existing valid config opens Home directly. A missing main config opens login
+even if an old backup exists. Manual setup using `config.example.json` is also
+supported; restart after manually changing credentials.
+
+Use the final server URL, including any prefix such as
+`https://music.example.com/navidrome`, without appending `/rest`.
+TLS verification remains enabled and redirects are rejected. Requests use salted
+Subsonic token authentication; HTTPS protects tokens and music in transit.
+Passwords are masked in the UI but stored as plain text in the SD-card config.
+Real config and backup files are excluded from Git and the Docker build context.
+
+**Settings → Account** shows the connected server URL and username, plus Log out.
+Logout stops app playback, disconnects the web remote, clears the app session,
+removes saved login files, and returns to login. Appearance preferences and
+previously downloaded cache files remain on SD.
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| A | Select the focused item |
+| B | Back / return to the parent page |
+| X | Play / pause |
+| L / R | Previous / next song |
+| Y | Refresh the library or Home; toggle follow on the lyrics screen |
+| ZR | Open the lyrics player |
+| − | Collapse / expand the sidebar |
+| Left / Right | Browse a Home shelf or adjust a focused setting |
+| Up / Down | Move between items; browse lyrics manually |
+| Tap | Activate a visible button, navigation item, or music card |
+| Swipe | Scroll lists/lyrics vertically or Home shelves horizontally |
+
+Unavailable player/page controls are disabled. Swiping and multitouch do not
+activate song rows. Swiping lyrics disables automatic follow; use its sync control
+or Y to enable it again. Text-size and playback controls use icons with translated
+controller hints. Icons in the mini-player and lyrics buttons use visible glyph
+bounds for centering rather than the surrounding text font's line metrics.
+
+## Settings
+
+| Tab | Options |
+| --- | --- |
+| Appearance | Background color, opacity, Bubbles/XMB, bubble count, speed |
+| Layout | Clock, 4–6 items per grid row, sidebar collapse, song caching |
+| Remote | Enable the web remote, address, pairing code, QR |
+| Account | Connected URL and username, Log out |
+
+Settings persist in `/switch/navidrome_nx/settings.json`. AMOLED uses pure black
+without effects. Rainbow cycles smoothly through muted colors over 180 seconds.
+Opacity adjusts color intensity over black (0–100%, default 80%). Bubbles bounce
+at screen edges and become smaller as their count increases (0–10). The clock
+uses Switch local time. Irrelevant appearance controls hide automatically.
+
+### Song cache
+
+Enable **Settings → Layout → Cache songs**; it is off by default. Played songs
+are saved under `/switch/navidrome_nx/song-cache` and reused before downloading
+again. Older entries are evicted to keep a maximum of **15 songs total**.
+Server/account-specific hashed filenames keep accounts separate. Files contain
+MP3 audio, not credentials. Storage failures show a warning and leave playback
+working when the song can still be fetched.
+
+Disabling caching stops cache reads/writes without deleting existing files.
+Stop the app and delete `song-cache` to erase downloaded music, including after
+logout. The existing 64 MiB per-track limit allows up to 960 MiB for 15 tracks.
+This speeds repeated playback; it does not add an offline library browser or
+control the separate Ultrahand cache.
+
+## Artwork and lyrics
+
+Visible artwork loads outside the UI thread with a 64-image RAM cache. The
+player requests 768px artwork; grid cards request 256px. Quality depends on the
+source image. Responses are capped at 512 KiB and decoded dimensions at 1024×1024.
+Missing/invalid art uses a placeholder without stopping audio.
+
+Both players show source format, bitrate, bit depth, sample rate, and channels
+when supplied by Navidrome. These describe the source; playback requests MP3
+at up to 192 kbps. Unknown metadata is omitted.
+
+Lyrics use `getLyricsBySongId`, with legacy artist/title lookup as a fallback.
+The first available version is displayed. Timed lines follow the estimated
+playback clock and server offset, enlarge by 8%, and fade into bold over 250 ms.
+Plain lyrics remain manually scrollable. Missing/invalid timestamps disable
+follow. Responses are limited to 256 KiB and 2,000 lines. Music continues when
+entering or leaving the lyrics player.
+
+## Android web remote
+
+1. Connect the phone and Switch to the same Wi-Fi.
+2. Enable **Settings → Remote → Web remote**.
+3. Scan the displayed QR code to open the browser remote and pair automatically,
+   or open its URL and enter the displayed code manually.
+
+Controls include previous/next, play/pause, stop, song search, favorites, and
+Shuffle all. Audio plays on the Switch and the app must remain open. Navidrome
+credentials are never sent to the browser. Pairing changes when the app restarts
+or the remote is re-enabled. Disconnect clears the browser's saved pairing.
+The remote uses local HTTP on port 8080; use trusted Wi-Fi and do not forward it
+to the internet. Guest-network isolation can prevent access.
+
+## Ultrahand mini-player
+
+```sh
+./scripts/build-overlay.sh
+```
+
+Outputs `dist/NavidromeNX-ultrahand.zip` and the extracted SD layout in
+`dist/ultrahand/`. The package includes `NavidromeNX.ovl` and a pinned sys-tune
+2.0.0 / IPC API 4 audio module. It does not include Ultrahand or Atmosphère.
+
+The overlay provides artwork, actual playback progress, transport controls, and
+Favorites → songs, Albums → songs, and Artists → albums → songs. It reads the
+login saved by the app. Selecting a song downloads its displayed page of up to
+10 tracks to SD before queueing. sys-tune can continue playing the cached page
+with the overlay closed.
+
+This is a **separate queue** from the Borealis app and Android remote. It does
+not provide unlimited Navidrome streaming in the background. See
+[installation, controls, cache limits, licensing, and hardware-test status](docs/ultrahand.md).
+The [original feasibility assessment](docs/ultrahand-feasibility.md) records a
+proposed future unified service architecture, not the current implementation.
+
+## Test on Switch with nxlink
+
+Start Homebrew Menu's network loader with Y, then run:
 
 ```sh
 bash scripts/nxlink.sh 192.168.1.91
 ```
 
-The script uploads the NRO to `/switch/navidrome_nx/navidrome_nx.nro`, alongside
-`config.json`, and listens for console output. It uses Docker host
-networking, so the host needs access to the Switch's LAN. Exit with Ctrl+C after
-testing. Alternatively, copy the NRO into `/switch/navidrome_nx/` and launch it
-from Homebrew Menu. nxlink uploads the executable; it does not install the config.
+Replace the address with your Switch's IP. The script uses the root NRO, uploads
+it to `/switch/navidrome_nx/navidrome_nx.nro` alongside the config, and listens
+for console output. Docker host networking needs access to the Switch's LAN.
+nxlink transfers the executable, not the config. Ctrl+C ends the host listener.
+The overlay/sysmodule package is installed separately as described above.
 
-## Testing status
-
-- Docker cross-compilation and automated API, artwork, and playback-clock checks pass.
-- nxlink launch, live library loading, and music playback work on a Switch.
-- Switch screenshots confirm readable album/track lists, artwork, and the player.
-- Favorites and lyrics endpoints were checked against a live Navidrome server.
-- Favorites/lyrics navigation, pause/resume, skip shortcuts, automatic advance,
-  and exit during a request still need a complete hardware test.
-
-## Automated API checks
+## Automated checks and validation
 
 ```sh
 docker build -t navidrome-nx-test -f tests/Dockerfile .
 docker run --rm -v "$PWD:/app:ro" navidrome-nx-test
 ```
 
-Runs the same C++ API client against a local mock server. Checks token auth,
-escaping, album/song parsing, invalid config, API/HTTP errors, malformed replies,
-redirect rejection, bounded downloads, and cancellation. Also checks favorites,
-cover-art metadata/requests, structured/plain/missing lyrics and lyric size limits,
-and image validation/decoding. No real credentials needed.
+Tests use mock servers and temporary files; no real credentials are needed.
+They cover authentication, escaping, API errors/cancellation/byte limits, library
+paging and sorting, artwork, lyrics, clock timing, settings/login persistence,
+translations, remote authorization and QR decoding, audio waveform capture,
+15-song cache eviction/account separation/storage failures, touch gestures, and
+actual fallback-font icon centering. Overlay tests cover browsing and cache
+protection/cancellation; its build script checks the exported NRO/ExeFS headers,
+sysmodule program ID, and boot flag.
+
+**Verified locally:** app and overlay Docker builds, automated tests, and package
+checks. **Previously confirmed on Switch:** library/playback, Home shelves,
+sidebar/icons, lyrics navigation, web remote QR pairing, Settings tabs,
+search/order/list-grid controls, pagination, playlists, and waveform behavior.
+
+**Pending Switch verification:** the latest icon-centering correction, touch
+input, app song cache, Account labels, softer Rainbow changes, and the Ultrahand
+player. In-game audio mixing, overlay memory use, suspend/resume, and firmware /
+Atmosphère / Ultrahand compatibility have not been established by local tests.
 
 ## Limitations
 
-One complete MP3 is downloaded into RAM before playback (64 MiB maximum).
-Navidrome must support MP3 transcoding for non-MP3 sources. There is no progressive
-streaming, seeking, search, playlists, offline cache, or scrobbling yet.
-Borealis UI sounds are disabled so SDL exclusively owns the audio renderer.
+- One complete MP3 is downloaded or read from cache into RAM before playback,
+  at most 64 MiB. No progressive streaming, seeking, scrobbling, or offline
+  library browser is implemented.
+- Navidrome must support MP3 transcoding for non-MP3 sources.
+- Lyrics synchronization uses an estimated playback clock, without word-level
+  karaoke or audio-device latency adjustment.
+- Borealis UI sounds are disabled so SDL owns the app's audio renderer.
+- The app's playback ends when the app exits; background playback belongs to
+  the separate sys-tune overlay queue.
 
-## Repository layout
+## Languages and source layout
+
+English and Spanish follow the console language at startup; `es-419` uses Spanish
+and other languages fall back to English. Restart after changing system language.
+Catalogs are in `resources/i18n/<locale>/app.json`; retain the keys and format
+placeholders when translating. Music metadata and lyrics remain server-provided.
 
 | Path | Contents |
 | --- | --- |
-| `src/` | Borealis UI, Subsonic client, artwork validation, playback clock |
-| `resources/` | Fonts and UI resources bundled into RomFS |
-| `vendor/borealis/` | Pinned Borealis source with local compatibility changes |
-| `scripts/` | Docker build and nxlink upload commands |
-| `tests/` | Mock-server API tests, image checks, and test container |
-| `config.example.json` | Template for the SD-card configuration |
+| `src/` | Borealis app, API, playback, settings, remote, cache |
+| `overlay/` | Native Ultrahand player and browsing/cache code |
+| `resources/` | Fonts, artwork, translations, browser remote |
+| `vendor/` | Included dependencies and license notices |
+| `scripts/` | Docker builds, package checks, nxlink, font generation |
+| `tests/` | Native tests, mock server, test Docker image |
+| `docs/` | Overlay installation and architecture notes |
+| `config.example.json` | Placeholder SD-card configuration |
 
-Build artifacts and real `config.json` files are ignored by Git. Keep credentials
-in your own config; never replace the example with real account details.
+Build artifacts and real credentials are ignored by Git. Normal builds use the
+included fonts; regeneration scripts require Python fonttools.
 
-## Upstream
+## Upstream and notices
 
-Borealis is vendored from `natinusala/borealis` commit
-`20e2d33b6c4ffce139ce304c503c04f5b94da920` under its included Apache-2.0 license
-and third-party notices. Local compatibility fixes add `<optional>` and replace
-the obsolete keyboard length function with `swkbdConfigSetStringLenMin`.
-The app supplies `src/switch_audio.cpp` in place of Borealis' UI sound player.
-The vendored Image component adds safe in-memory loading for network artwork.
+- [Borealis](https://github.com/natinusala/borealis):
+  `20e2d33b6c4ffce139ce304c503c04f5b94da920`, Apache-2.0 and included third-party
+  notices. Local changes cover SDK compatibility, SDL-owned audio, artwork,
+  activity transitions, label metrics, scrolling/focus, and touch input.
+- [libultrahand](https://github.com/ppkantorski/libultrahand):
+  `548e491e19d791120ad3de05b4a7efea4ca00e34`, included GPL-2.0 / sub-license notices.
+- [sys-tune](https://github.com/HookedBehemoth/sys-tune):
+  `24132cfa26e569011a2028790575cd474f32cf95`, GPL-2.0. The module uses its original
+  service/title ID; do not install a second copy beside an existing sys-tune.
+- [Nayuki QR encoder](https://www.nayuki.io/page/qr-code-generator-library):
+  v1.8.0, MIT, with revision and license in `vendor/qrcodegen`.
+- Inter-derived fonts retain their SIL notices. The lyrics bold font uses Inter
+  v4.1, `e3a3d4c57d5ecc01453a575621882a384c1995a3`. Material Icons retains its
+  included license. New overlay sources are GPL-2.0-or-later.
 
-References: [Borealis](https://github.com/natinusala/borealis),
-[Navidrome Subsonic API](https://www.navidrome.org/docs/developers/subsonic-api/),
-[getCoverArt](https://opensubsonic.github.io/docs/endpoints/getcoverart/),
-[getStarred2](https://opensubsonic.github.io/docs/endpoints/getstarred2/),
-[getLyricsBySongId](https://opensubsonic.github.io/docs/endpoints/getlyricsbysongid/).
+The header and launcher currently use the
+[official Navidrome logo](https://www.navidrome.org/brand/navidrome-logo.png).
+Navidrome's [brand guidelines](https://www.navidrome.org/brand/) require written
+permission for third-party app-icon distribution; this repository does not grant
+that permission. Upstream license notices remain with the included sources/assets.
+
+API references: [Navidrome Subsonic API](https://www.navidrome.org/docs/developers/subsonic-api/),
+[OpenSubsonic endpoints](https://opensubsonic.github.io/docs/).

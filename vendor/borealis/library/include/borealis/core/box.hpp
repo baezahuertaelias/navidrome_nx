@@ -159,6 +159,7 @@ class Box : public View
     void setAxis(Axis axis);
 
     std::vector<View*>& getChildren();
+    View* hitTest(float x, float y) override;
 
     /**
      * Returns the bounds used for culling children.

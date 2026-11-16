@@ -39,9 +39,9 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	navidrome_nx
 BUILD		:=	build.nx
-SOURCES		:=	src
+SOURCES		:=	src vendor/qrcodegen
 DATA		:=	data
-ICON		:=	resources/img/demo_icon.jpg
+ICON		:=	resources/img/navidrome-icon.jpg
 INCLUDES	:=	src
 
 APP_TITLE	:=	Navidrome NX
@@ -129,7 +129,7 @@ ifneq ($(strip $(ROMFS)),)
 		ROMFS_FOLDERS += $(ROMFS_SHADERS)
 	endif
 
-	export ROMFS_DEPS := $(foreach file,$(ROMFS_TARGETS),$(CURDIR)/$(file))
+	export ROMFS_DEPS := $(foreach file,$(ROMFS_TARGETS),$(CURDIR)/$(file)) $(shell find $(CURDIR)/$(ROMFS) -type f)
 endif
 
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
@@ -244,6 +244,8 @@ DEPENDS	:=	$(OFILES:.o=.d)
 ifeq ($(strip $(APP_JSON)),)
 
 all	:	$(OUTPUT).nro
+
+$(OUTPUT).nro : $(APP_ICON)
 
 ifeq ($(strip $(NO_NACP)),)
 $(OUTPUT).nro	:	$(OUTPUT).elf $(OUTPUT).nacp $(ROMFS_DEPS)
