@@ -6,7 +6,7 @@ struct Catalog {
     std::string query;
     std::vector<Entry> entries;
     int order = 0;
-    bool loaded = false, grid = false;
+    bool loaded = false;
 };
 inline constexpr size_t CatalogLimit = 50000;
 inline std::vector<Entry> fetchCatalog(Api& api, EntryKind kind, const std::string& query, const std::function<std::string()>& salt) {

@@ -194,5 +194,13 @@
   "previous_tab": "Previous tab",
   "next_tab": "Next tab",
   "manual_scroll_on": "Manual scrolling: On",
-  "manual_scroll_off": "Manual scrolling: Off"
+  "manual_scroll_off": "Manual scrolling: Off",
+  "visualizer": "Mini-player visualizer",
+  "visualizer_waveform": "Waveform",
+  "visualizer_bars": "Bars",
+  "visualizer_vu": "VU meter",
+  "color_amoled_warp": "AMOLED Warp",
+  "settings_warp_hint": "Black background with stars streaming outward. Animation speed controls the motion.",
+  "view_coverflow": "Cover Flow",
+  "coverflow_position": "{0} / {1} · Left/Right to browse"
 }

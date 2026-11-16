@@ -19,6 +19,7 @@
 #include "waveform_view.hpp"
 #include "audio_details.hpp"
 #include "catalog.hpp"
+#include "cover_flow.hpp"
 #include "song_cache.hpp"
 
 static std::string localizedError(const std::exception& error) {
@@ -56,7 +57,9 @@ class App : public brls::Activity {
     brls::Box* pagination = nullptr;
     brls::Button* viewToggle = nullptr;
     Catalog artistCatalog, songCatalog;
-    bool albumsGrid = true;
+    std::array<LibraryView, 10> libraryViews{{LibraryView::List, LibraryView::Grid, LibraryView::List, LibraryView::List,
+        LibraryView::List, LibraryView::Grid, LibraryView::List, LibraryView::List, LibraryView::List, LibraryView::Grid}};
+    std::array<std::string, 10> flowSelections{};
     int artistParentOffset = 0;
     std::string selectedArtistId;
     Entry openedAlbum, openedPlaylist;
@@ -196,11 +199,13 @@ class App : public brls::Activity {
         searchButton->setVisibility(collection ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
         orderButton->setVisibility(collection ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
         clearSearch->setVisibility(collection && !collectionQuery().empty() ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
-        viewToggle->setVisibility(collection ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
-        if (collection) {
-            orderButton->setText(brls::getStr(orderCaption()));
-            viewToggle->setText(collectionGrid() ? u8"\ue8ef" : u8"\ue8f0");
-            viewToggle->updateActionHint(brls::BUTTON_A, brls::getStr(collectionGrid() ? "app/view_list" : "app/view_grid"));
+        viewToggle->setVisibility(mode != LibraryMode::Home ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+        if (collection) orderButton->setText(brls::getStr(orderCaption()));
+        if (mode != LibraryMode::Home) {
+            const char* captions[] = {"app/view_list", "app/view_grid", "app/view_coverflow"};
+            const int view = static_cast<int>(libraryView());
+            viewToggle->setText(brls::getStr(captions[view]) + u8" ›");
+            viewToggle->updateActionHint(brls::BUTTON_A, brls::getStr(captions[(view + 1) % 3]));
         }
         favoriteKind->setVisibility(mode == LibraryMode::Favorites ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
         favoriteKind->setText(brls::getStr(favoriteSongs ? "app/nav_favorite_albums" : "app/nav_favorite_songs"));
@@ -347,13 +352,35 @@ class App : public brls::Activity {
         list->setWidth(scroll->getWidth());
         list->setPadding(8, 12, 12, 8);
         auto tracks = std::make_shared<const std::vector<Entry>>(entries);
+        auto activate = [this, tracks](size_t i) {
+            if (job.valid() || i >= tracks->size()) return;
+            const auto entry = (*tracks)[i];
+            if (entry.kind == EntryKind::Artist) loadArtist(entry);
+            else if (entry.kind == EntryKind::Album) { selectedAlbum = entry.id; loadAlbum(entry); }
+            else if (entry.kind == EntryKind::Playlist) loadPlaylist(entry);
+            else { queue = *tracks; play(i); }
+        };
         brls::View* focus = nullptr;
+        const bool flow = libraryView() == LibraryView::CoverFlow;
+        if (flow) {
+            const auto slot = libraryViewSlot(mode, favoriteSongs);
+            size_t selected = 0;
+            if (!startAtTop) for (size_t i = 0; i < entries.size(); ++i)
+                if (entries[i].id == flowSelections[slot]) { selected = i; break; }
+            auto view = new CoverFlow(tracks, selected, scroll->getHeight() - 20,
+                [this](auto targets) { coverTargets = std::move(targets); },
+                [this, slot, tracks](size_t index) { flowSelections[slot] = (*tracks)[index].id; }, activate);
+            view->setCustomNavigationRoute(brls::FocusDirection::UP, viewToggle);
+            view->setCustomNavigationRoute(brls::FocusDirection::DOWN,
+                mode == LibraryMode::AlbumTracks || mode == LibraryMode::PlaylistTracks ? previous : pagePrevious);
+            list->addView(view); focus = entries.empty() ? nullptr : view;
+        }
         std::vector<brls::Box*> cards;
         brls::Box* gridRow = nullptr;
         const int columns = preferences.columns;
         const float cardWidth = albumCardWidth(scroll->getWidth(), columns);
         const float artSize = albumArtSize(scroll->getWidth(), scroll->getHeight(), columns);
-        for (size_t i = 0; i < entries.size(); ++i) {
+        for (size_t i = 0; !flow && i < entries.size(); ++i) {
             const auto entry = entries[i];
             auto row = new brls::Box();
             row->setAxis(grid ? brls::Axis::COLUMN : brls::Axis::ROW);
@@ -402,14 +429,7 @@ class App : public brls::Activity {
                 duration->setHorizontalAlign(brls::HorizontalAlign::RIGHT);
                 duration->setTextColor(muted);
             }
-            row->registerClickAction([this, entry, tracks, i](brls::View*) {
-                if (job.valid()) return true;
-                if (entry.kind == EntryKind::Artist) loadArtist(entry);
-                else if (entry.kind == EntryKind::Album) { selectedAlbum = entry.id; loadAlbum(entry); }
-                else if (entry.kind == EntryKind::Playlist) loadPlaylist(entry);
-                else { queue = *tracks; play(i); }
-                return true;
-            });
+            row->registerClickAction([activate, i](brls::View*) { activate(i); return true; });
             (grid ? gridRow : list)->addView(row);
             if (entry.kind == EntryKind::Song) trackRows.push_back({entry.id, row});
             if (!focus || (!startAtTop && ((entry.kind == EntryKind::Album && entry.id == selectedAlbum) || (entry.kind == EntryKind::Artist && entry.title == selectedArtist) || (entry.kind == EntryKind::Playlist && entry.id == openedPlaylist.id) || (entry.kind == EntryKind::Song && music && entry.id == queue[current].id)))) focus = row;
@@ -557,11 +577,8 @@ class App : public brls::Activity {
     Catalog& catalog(LibraryMode target) { return target == LibraryMode::Artists ? artistCatalog : songCatalog; }
     std::string& collectionQuery() { return mode == LibraryMode::Albums ? albumQuery : catalog(mode).query; }
     int& collectionOrder() { return mode == LibraryMode::Albums ? albumOrder : catalog(mode).order; }
-    bool& collectionGrid() { return mode == LibraryMode::Albums ? albumsGrid : catalog(mode).grid; }
-    bool gridView() const {
-        return mode == LibraryMode::Albums ? albumsGrid : mode == LibraryMode::Artists ? artistCatalog.grid
-            : mode == LibraryMode::Songs ? songCatalog.grid : viewingAlbums;
-    }
+    LibraryView& libraryView() { return libraryViews[libraryViewSlot(mode, favoriteSongs)]; }
+    bool gridView() const { return libraryViews[libraryViewSlot(mode, favoriteSongs)] == LibraryView::Grid; }
     const char* orderCaption() {
         if (mode == LibraryMode::Artists) return artistCatalog.order ? "app/order_name_desc" : "app/order_name_asc";
         const char* albums[] = {"app/order_name", "app/order_artist", "app/order_newest"};
@@ -621,9 +638,9 @@ class App : public brls::Activity {
         preserveFocus = searchButton; reloadCollection(0);
     }
     void toggleCollectionView() {
-        if (job.valid() || !isCollection(mode)) return;
-        collectionGrid() = !collectionGrid(); preserveFocus = viewToggle;
-        if (mode != LibraryMode::Albums && !catalog(mode).loaded) reloadCollection(offset); else redrawCollection();
+        if (job.valid() || mode == LibraryMode::Home) return;
+        libraryView() = static_cast<LibraryView>((static_cast<int>(libraryView()) + 1) % 3); preserveFocus = viewToggle;
+        if (isCollection(mode) && mode != LibraryMode::Albums && !catalog(mode).loaded) reloadCollection(offset); else redrawCollection();
     }
     void showArtistPage(int page) {
         if (page < 0 || (page > 0 && static_cast<size_t>(page) >= artistAlbums.size())) return;
@@ -1039,7 +1056,7 @@ public:
         searchButton = button(toolbar, brls::getStr("app/search"), [this] { promptSearch(); });
         clearSearch = button(toolbar, brls::getStr("app/clear_search"), [this] { clearCollectionSearch(); });
         orderButton = button(toolbar, brls::getStr("app/order_name"), [this] { cycleOrder(); });
-        viewToggle = button(toolbar, u8"\ue8f0", [this] { toggleCollectionView(); }); viewToggle->setWidth(52); viewToggle->setPadding(6);
+        viewToggle = button(toolbar, u8"\ue8f0", [this] { toggleCollectionView(); }); viewToggle->setWidth(180); viewToggle->setPadding(6); viewToggle->applyXMLAttribute("fontSize", "16");
         favoriteKind = button(toolbar, brls::getStr("app/nav_favorite_albums"), [this] { if (!job.valid()) { preserveFocus = favoriteKind; showFavoritePage(!favoriteSongs, 0); } });
         shuffleButton = button(toolbar, brls::getStr("app/shuffle_all"), [this] { shuffleFavorites(); });
         library->addView(toolbar);

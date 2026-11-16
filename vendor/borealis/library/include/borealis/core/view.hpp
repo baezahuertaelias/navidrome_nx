@@ -1043,6 +1043,7 @@ class View
     const unsigned long long touchId = ++nextTouchId;
     virtual View* hitTest(float x, float y);
     virtual bool onTouchScroll(float dx, float dy) { return false; }
+    virtual bool onTouchTap(float x, float y) { return false; }
 
     const std::vector<Action>& getActions()
     {

@@ -4,6 +4,7 @@
 #include <chrono>
 #include "bubbles.hpp"
 #include "settings.hpp"
+#include "warp.hpp"
 
 // Native gradient circles keep the animation independent of image assets and frame rate.
 class MusicSurface : public brls::Box {
@@ -25,7 +26,8 @@ public:
         nvgRect(vg, x, y, width, height);
         const std::array<NVGcolor, 4> topColors{{nvgRGB(48, 23, 77), nvgRGB(18, 43, 86), nvgRGB(76, 24, 55), nvgRGB(16, 61, 58)}};
         const std::array<NVGcolor, 4> bottomColors{{nvgRGB(16, 14, 38), nvgRGB(10, 18, 40), nvgRGB(30, 12, 34), nvgRGB(8, 25, 37)}};
-        if (preferences.background == 4) {
+        const bool colored = preferences.background != 4 && preferences.background != 6;
+        if (!colored) {
             nvgFillColor(vg, nvgRGB(0, 0, 0));
             nvgFill(vg);
         } else if (preferences.background == 5) {
@@ -46,7 +48,7 @@ public:
         }};
         nvgSave(vg);
         nvgIntersectScissor(vg, x, y, width, height);
-        for (size_t i = 0; preferences.background != 4 && preferences.backgroundStyle == 0 && i < static_cast<size_t>(preferences.bubbleCount); ++i) {
+        for (size_t i = 0; colored && preferences.backgroundStyle == 0 && i < static_cast<size_t>(preferences.bubbleCount); ++i) {
             const auto bubble = bubbleAt(i, seconds, width, height, preferences.bubbleCount);
             const float cx = x + bubble.x, cy = y + bubble.y;
             const auto color = preferences.background == 5 ? nvgHSLA(rainbowHue(colorSeconds + i * 4), 0.45f, 0.6f, 65) : colors[i % colors.size()];
@@ -61,7 +63,7 @@ public:
             nvgStrokeColor(vg, nvgRGBA(218, 184, 255, 5));
             nvgStroke(vg);
         }
-        if (preferences.background != 4 && preferences.backgroundStyle == 1) {
+        if (colored && preferences.backgroundStyle == 1) {
             constexpr int segments = 64;
             for (size_t layer = 0; layer < 3; ++layer) {
                 const auto color = preferences.background == 5 ? nvgHSLA(rainbowHue(colorSeconds + layer * 4), 0.35f, 0.75f, 16)
@@ -82,6 +84,20 @@ public:
                 nvgClosePath(vg);
                 nvgFillPaint(vg, nvgLinearGradient(vg, x, y + height * 0.38f, x, y + height * 0.78f, color, transparent));
                 nvgFill(vg);
+            }
+        }
+        if (preferences.background == 6) {
+            for (size_t i = 0; i < WarpStarCount; ++i) {
+                const auto star = warpStarAt(i, seconds, width, height);
+                if (star.brightness <= 0) continue;
+                const auto bright = nvgRGBA(187, 214, 255, static_cast<unsigned char>(star.brightness * 150));
+                const auto clear = nvgRGBA(187, 214, 255, 0);
+                nvgBeginPath(vg); nvgMoveTo(vg, x + star.tailX, y + star.tailY); nvgLineTo(vg, x + star.x, y + star.y);
+                nvgStrokeWidth(vg, star.width);
+                nvgStrokePaint(vg, nvgLinearGradient(vg, x + star.tailX, y + star.tailY, x + star.x, y + star.y, clear, bright));
+                nvgStroke(vg);
+                nvgBeginPath(vg); nvgCircle(vg, x + star.x, y + star.y, star.width * 0.65f);
+                nvgFillColor(vg, bright); nvgFill(vg);
             }
         }
         nvgRestore(vg);

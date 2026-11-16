@@ -16,6 +16,7 @@ int main() {
     assert(loadSettings(path.c_str()).bubbleCount == 5);
     assert(loadSettings(path.c_str()).backgroundOpacity == 80);
     assert(!loadSettings(path.c_str()).cacheSongs);
+    assert(loadSettings(path.c_str()).visualizer == 0);
     Settings value; value.cacheSongs = true; value.columns = 6; value.background = 3; value.remoteEnabled = true;
     saveSettings(value, path.c_str());
     assert(loadSettings(path.c_str()).columns == 6);
@@ -26,7 +27,16 @@ int main() {
     assert(loadSettings(path.c_str()).columns == 5);
     saveSettings(value, path.c_str());
     assert(!std::filesystem::exists(path + ".bak"));
-    for (int background = 0; background < 6; ++background) {
+    for (int style = 0; style <= 2; ++style) {
+        value.visualizer = style; saveSettings(value, path.c_str());
+        assert(loadSettings(path.c_str()).visualizer == style);
+    }
+    value.visualizer = 3;
+    bool badVisualizer = false;
+    try { saveSettings(value, path.c_str()); } catch (...) { badVisualizer = true; }
+    assert(badVisualizer && loadSettings(path.c_str()).visualizer == 2);
+    value.visualizer = 0;
+    for (int background = 0; background <= 6; ++background) {
         value.background = background; saveSettings(value, path.c_str());
         assert(loadSettings(path.c_str()).background == background);
     }
@@ -60,10 +70,10 @@ int main() {
     try { saveSettings(value, path.c_str()); } catch (...) { badStyle = true; }
     assert(badStyle && loadSettings(path.c_str()).backgroundStyle == 1);
     value.backgroundStyle = 1;
-    value.background = 6;
+    value.background = 7;
     bool badBackground = false;
     try { saveSettings(value, path.c_str()); } catch (...) { badBackground = true; }
-    assert(badBackground && loadSettings(path.c_str()).background == 5);
+    assert(badBackground && loadSettings(path.c_str()).background == 6);
     value.background = 5;
     value.columns = 7;
     bool rejected = false;

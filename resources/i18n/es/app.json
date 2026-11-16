@@ -194,5 +194,13 @@
   "previous_tab": "Pestaña anterior",
   "next_tab": "Pestaña siguiente",
   "manual_scroll_on": "Desplazamiento manual: Sí",
-  "manual_scroll_off": "Desplazamiento manual: No"
+  "manual_scroll_off": "Desplazamiento manual: No",
+  "visualizer": "Visualizador del reproductor",
+  "visualizer_waveform": "Forma de onda",
+  "visualizer_bars": "Barras",
+  "visualizer_vu": "Medidor VU",
+  "color_amoled_warp": "AMOLED espacial",
+  "settings_warp_hint": "Fondo negro con estrellas que se alejan del centro. La velocidad controla el movimiento.",
+  "view_coverflow": "Cover Flow",
+  "coverflow_position": "{0} / {1} · Izquierda/Derecha para explorar"
 }

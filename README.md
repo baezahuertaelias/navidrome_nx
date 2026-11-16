@@ -11,7 +11,7 @@ Independent third-party software, not affiliated with or endorsed by Navidrome.
 - **Home:** horizontal artwork shelves for Most played, Favorites, Play again,
   Discover, and Random songs. Each shelf contains up to 12 items.
 - **Library:** Artists, Albums, Songs, Playlists, and Favorites; artwork, search,
-  ordering, list/grid views, and bottom pagination. Album lists open at the first
+  ordering, List/Grid/Cover Flow views, and bottom pagination. Album lists open at the first
   song; returning preserves the parent page and selection.
 - **Playback:** previous/next, play/pause, stop, automatic queue advancement,
   elapsed/total time, album art, and a waveform driven by the mixed audio.
@@ -112,17 +112,41 @@ resumes follow for timed lyrics. Text-size changes use the dedicated button. Tex
 controller hints. Icons in the mini-player and lyrics buttons use visible glyph
 bounds for centering rather than the surrounding text font's line metrics.
 
+## Cover Flow
+
+The view button cycles **List → Grid → Cover Flow** on Artists, Albums, Songs,
+Favorites (songs and albums), Playlists, artist albums, album tracks, and playlist
+tracks. Each screen keeps its view choice while the app is open; Home retains its
+horizontal shelves.
+
+Cover Flow displays a large centered cover, angled neighbors, short mirrored
+reflections, and the selected title/artist. Left/Right browses; A opens the centered
+artist/album/playlist or plays the selected song using the current page/track queue.
+Swipe horizontally to browse. Tap a neighboring cover to center it, then tap the
+center cover to open/play. Up returns to the view button; Down reaches the page
+controls or mini-player. Existing paging, search, ordering, and Favorites Shuffle
+all remain available where applicable.
+
+Only the seven neighboring cover slots are loaded, with shared images when
+tracks have the same artwork. Missing art uses a placeholder. Returning from a
+detail page restores the chosen cover; opening a new album starts at its first
+song. The Cover Flow rendering, touch hit areas, controller focus, and performance
+still require Switch verification.
+
 ## Settings
 
 | Tab | Options |
 | --- | --- |
 | Appearance | Background color, opacity, Bubbles/XMB, bubble count, speed |
-| Layout | Clock, 4–6 items per grid row, sidebar collapse, song caching |
+| Layout | Clock, 4–6 items per grid row, sidebar collapse, song caching, visualizer |
 | Remote | Enable the web remote, address, pairing code, QR |
 | Account | Connected URL and username, Log out |
 
 Settings persist in `/switch/navidrome_nx/settings.json`. AMOLED uses pure black
-without effects. Rainbow cycles smoothly through muted colors over 180 seconds.
+without effects. **AMOLED Warp** adds a sparse starfield on black, with stars
+and short trails moving outward from the center. Its Animation speed setting
+controls motion; Off leaves a static starfield. Bubbles and XMB are hidden in
+this mode. Rainbow cycles smoothly through muted colors over 180 seconds.
 Colored backgrounds use a broad, slowly drifting radial glow, with subtle
 dithering to soften visible gradient bands. The original XMB wave ribbons are
 retained; animation speed controls their motion (Off pauses it). Settings tabs
@@ -130,6 +154,17 @@ wrap with L/R, and the upper-right Back control uses a centered arrow icon.
 Opacity adjusts color intensity over black (0–100%, default 80%). Bubbles bounce
 at screen edges and become smaller as their count increases (0–10). The clock
 uses Switch local time. Irrelevant appearance controls hide automatically.
+
+### Mini-player visualizer
+
+Choose **Settings → Layout → Mini-player visualizer**: Waveform (default), Bars,
+or VU meter. The choice is saved and applies immediately. Waveform and bars use
+short-window audio peaks; bars represent amplitude, not a frequency spectrum.
+The VU style shows independent left/right RMS levels on a −48 to 0 dBFS scale,
+with green/yellow/red segments and fast attack / slower release. Mono output is
+mirrored to both rows. All styles react to actual mixed audio, freeze on pause,
+and clear on stop. Capture does not allocate, lock, or modify the audio stream.
+The new styles require Switch visual/performance verification.
 
 ### Song cache
 

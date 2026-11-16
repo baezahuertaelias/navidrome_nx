@@ -23,10 +23,12 @@ class SettingsScreen : public brls::Activity {
     brls::Box *bubbleRow = nullptr, *opacityRow = nullptr, *styleRow = nullptr, *speedRow = nullptr;
     brls::Label* appearanceHint = nullptr;
     void updateAppearance() {
-        const bool colored = preferences.background != 4;
-        for (auto row : {opacityRow, styleRow, speedRow}) row->setVisibility(colored ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+        const bool warp = preferences.background == 6;
+        const bool colored = preferences.background != 4 && !warp;
+        for (auto row : {opacityRow, styleRow}) row->setVisibility(colored ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+        speedRow->setVisibility(colored || warp ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
         bubbleRow->setVisibility(colored && preferences.backgroundStyle == 0 ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
-        appearanceHint->setText(brls::getStr(!colored ? "app/settings_amoled_hint" : preferences.background == 5 ? "app/settings_rainbow_hint" : "app/settings_appearance_hint"));
+        appearanceHint->setText(brls::getStr(warp ? "app/settings_warp_hint" : !colored ? "app/settings_amoled_hint" : preferences.background == 5 ? "app/settings_rainbow_hint" : "app/settings_appearance_hint"));
     }
     void selectTab(int index) {
         activeTab = index;
@@ -99,9 +101,9 @@ public:
         for (auto& page : pages) { page = new brls::Box(brls::Axis::COLUMN); options->addView(page); }
         appearanceHint = section(pages[0], "app/settings_appearance", "app/settings_appearance_hint");
         option(pages[0], brls::getStr("app/background"), [] {
-            const char* colors[] = {"app/color_purple", "app/color_blue", "app/color_rose", "app/color_emerald", "app/color_amoled", "app/color_rainbow"};
+            const char* colors[] = {"app/color_purple", "app/color_blue", "app/color_rose", "app/color_emerald", "app/color_amoled", "app/color_rainbow", "app/color_amoled_warp"};
             return brls::getStr(colors[preferences.background]);
-        }, [](int direction) { preferences.background = adjustSetting(preferences.background, 0, 5, direction); });
+        }, [](int direction) { preferences.background = adjustSetting(preferences.background, 0, 6, direction); });
         opacityRow = option(pages[0], brls::getStr("app/background_opacity"), [] { return std::to_string(preferences.backgroundOpacity) + "%"; },
             [](int direction) { preferences.backgroundOpacity = std::clamp(preferences.backgroundOpacity + direction * 10, 0, 100); });
         styleRow = option(pages[0], brls::getStr("app/background_style"), [] { return brls::getStr(preferences.backgroundStyle == 0 ? "app/style_bubbles" : "app/style_xmb"); },
@@ -116,6 +118,10 @@ public:
         option(pages[1], brls::getStr("app/items_per_row"), [] { return std::to_string(preferences.columns); }, [](int direction) { preferences.columns = adjustSetting(preferences.columns, 4, 6, direction); });
         option(pages[1], brls::getStr("app/collapse_menu"), [this] { return toggle(preferences.sidebarCollapsed); }, [](int) { preferences.sidebarCollapsed = !preferences.sidebarCollapsed; });
         option(pages[1], brls::getStr("app/cache_songs"), [this] { return toggle(preferences.cacheSongs); }, [](int) { preferences.cacheSongs = !preferences.cacheSongs; });
+        option(pages[1], brls::getStr("app/visualizer"), [] {
+            const char* styles[] = {"app/visualizer_waveform", "app/visualizer_bars", "app/visualizer_vu"};
+            return brls::getStr(styles[preferences.visualizer]);
+        }, [](int direction) { preferences.visualizer = adjustSetting(preferences.visualizer, 0, 2, direction); });
         section(pages[2], "app/settings_remote", "app/settings_remote_hint");
         option(pages[2], brls::getStr("app/web_remote"), [this] { return toggle(preferences.remoteEnabled); }, [](int) { preferences.remoteEnabled = !preferences.remoteEnabled; });
         remoteAddress = new brls::Label(); remoteAddress->setFontSize(18); remoteAddress->setHeight(180); remoteAddress->setShrink(0); pages[2]->addView(remoteAddress);

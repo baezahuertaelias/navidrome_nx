@@ -5,6 +5,10 @@
 #include "api.hpp"
 
 enum class LibraryMode { Home, Albums, Artists, Songs, Favorites, ArtistAlbums, AlbumTracks, Playlists, PlaylistTracks };
+enum class LibraryView { List, Grid, CoverFlow };
+inline size_t libraryViewSlot(LibraryMode mode, bool favoriteSongs) {
+    return mode == LibraryMode::Favorites && !favoriteSongs ? 9 : static_cast<size_t>(mode);
+}
 inline bool isCollection(LibraryMode mode) {
     return mode == LibraryMode::Albums || mode == LibraryMode::Artists || mode == LibraryMode::Songs;
 }

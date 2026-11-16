@@ -22,6 +22,7 @@ struct Settings {
     int bubbleSpeed = 2;
     int bubbleCount = DefaultBubbleCount;
     int columns = 4;
+    int visualizer = 0;
 };
 inline Settings preferences;
 inline constexpr const char* SettingsPath = "sdmc:/switch/navidrome_nx/settings.json";
@@ -46,12 +47,13 @@ inline Settings parseSettings(json_t* root) {
     result.sidebarCollapsed = boolean("sidebarCollapsed", false);
     result.remoteEnabled = boolean("remoteEnabled", false);
     result.cacheSongs = boolean("cacheSongs", false);
-    result.background = integer("background", 0, 0, 5);
+    result.background = integer("background", 0, 0, 6);
     result.backgroundOpacity = integer("backgroundOpacity", 80, 0, 100);
     result.backgroundStyle = integer("backgroundStyle", 0, 0, 1);
     result.bubbleCount = integer("bubbleCount", DefaultBubbleCount, 0, MaxBubbleCount);
     result.bubbleSpeed = integer("bubbleSpeed", 2, 0, 3);
     result.columns = integer("columns", 4, 4, 6);
+    result.visualizer = integer("visualizer", 0, 0, 2);
     return result;
 }
 inline Settings loadSettings(const char* path = SettingsPath) {
@@ -70,10 +72,10 @@ inline Settings loadSettings(const char* path = SettingsPath) {
     catch (...) { json_decref(root); throw; }
 }
 inline void saveSettings(const Settings& value, const char* path = SettingsPath) {
-    auto root = json_pack("{s:b,s:b,s:b,s:b,s:i,s:i,s:i,s:i,s:i,s:i}",
+    auto root = json_pack("{s:b,s:b,s:b,s:b,s:i,s:i,s:i,s:i,s:i,s:i,s:i}",
         "showClock", value.showClock, "sidebarCollapsed", value.sidebarCollapsed,
         "remoteEnabled", value.remoteEnabled, "cacheSongs", value.cacheSongs, "background", value.background,
-        "bubbleSpeed", value.bubbleSpeed, "columns", value.columns, "backgroundStyle", value.backgroundStyle, "bubbleCount", value.bubbleCount, "backgroundOpacity", value.backgroundOpacity);
+        "bubbleSpeed", value.bubbleSpeed, "columns", value.columns, "backgroundStyle", value.backgroundStyle, "bubbleCount", value.bubbleCount, "backgroundOpacity", value.backgroundOpacity, "visualizer", value.visualizer);
     if (!root) throw std::runtime_error("settings_write");
     try { parseSettings(root); } catch (...) { json_decref(root); throw; }
     char* encoded = json_dumps(root, JSON_INDENT(2));

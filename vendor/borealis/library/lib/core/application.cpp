@@ -230,6 +230,7 @@ void Application::onTouchState(TouchState state)
         auto target = clickable(hit);
         if (!target || target->touchId != targetId) return;
         Application::giveFocus(target);
+        if (target->onTouchTap(event.x, event.y)) return;
         for (const auto& action : target->getActions()) {
             if (action.button != BUTTON_A || !action.available) continue;
             // The callback may replace this tree; keep no references into it afterwards.

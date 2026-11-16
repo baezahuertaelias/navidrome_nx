@@ -47,3 +47,7 @@ g++ -std=c++17 -I"$nanovg/include" tests/icon_alignment_test.cpp /tmp/nanovg-tes
 /tmp/icon_alignment_test
 g++ -std=c++17 -Wall -Wextra -Werror -Isrc tests/lyrics_navigation_test.cpp -o /tmp/lyrics_navigation_test
 /tmp/lyrics_navigation_test
+g++ -std=c++17 -Wall -Wextra -Werror -Isrc tests/warp_test.cpp -o /tmp/warp_test
+/tmp/warp_test
+g++ -std=c++17 -Wall -Wextra -Werror -Isrc tests/cover_flow_test.cpp -lcurl -ljansson -lmbedcrypto -o /tmp/cover_flow_test
+/tmp/cover_flow_test
