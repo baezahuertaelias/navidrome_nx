@@ -4,6 +4,7 @@
 #include <cassert>
 #include <filesystem>
 int main() {
+    assert(adjustSetting(0, 0, 3, -1) == 3 && adjustSetting(3, 0, 3, 1) == 0);
     assert(adjustSetting(0, 0, 10, -1) == 10);
     assert(adjustSetting(10, 0, 10, 1) == 0);
     assert(adjustSetting(5, 0, 10, -1) == 4 && adjustSetting(5, 0, 10, 1) == 6);

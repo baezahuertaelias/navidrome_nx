@@ -45,6 +45,12 @@ void main(void) {
         vec2 pt = (paintMat * vec3(fpos,1.0)).xy;
         float d = clamp((sdroundrect(pt, extent, radius) + feather*0.5) / feather, 0.0, 1.0);
         vec4 color = mix(innerCol,outerCol,d);
+        // Navidrome NX: hide dark-background gradient bands with subpixel color noise.
+        // Equal-color fills (including AMOLED black) and translucent effects are unchanged.
+        if (innerCol.a == 1.0 && outerCol.a == 1.0 && any(notEqual(innerCol.rgb, outerCol.rgb))) {
+            float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5;
+            color.rgb = clamp(color.rgb + noise / 255.0, 0.0, 1.0);
+        }
         // Combine alpha
         color *= strokeAlpha * scissor;
         result = color;

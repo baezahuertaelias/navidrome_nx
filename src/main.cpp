@@ -388,6 +388,7 @@ class App : public brls::Activity {
                 number->setWidth(64);
                 number->setMarginRight(14);
                 number->setHorizontalAlign(brls::HorizontalAlign::RIGHT);
+                if (mode == LibraryMode::Favorites) coverTargets.push_back({entry.coverArt, cover(row, 56)});
             }
             auto text = new brls::Box();
             text->setAxis(brls::Axis::COLUMN);

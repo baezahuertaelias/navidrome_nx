@@ -76,7 +76,7 @@
   "follow_off": "Sincronizar: No",
   "synced_lyrics": "Letra sincronizada · Arriba/Abajo para explorar",
   "plain_lyrics": "Letra sin tiempos · Arriba/Abajo para desplazarte",
-  "lyrics_footer": "Arriba/Abajo Explorar   A Tamaño   Y Sincronizar   X Pausa   L/R Cambiar   B Biblioteca   + Salir",
+  "lyrics_footer": "Botón manual para explorar   Y Sincronizar   X Pausa   L/R Cambiar   B Atrás",
   "settings": "Ajustes",
   "show_clock": "Mostrar hora",
   "background": "Color de fondo",
@@ -190,5 +190,9 @@
   "settings_amoled_hint": "Negro puro sin efectos. Cambia de color para ajustar opacidad y animación.",
   "settings_rainbow_hint": "Un color uniforme que cambia suavemente, sin bandas diagonales.",
   "cache_songs": "Guardar canciones (máximo 15)",
-  "playback_cache_error": "Reproduciendo — caché no disponible"
+  "playback_cache_error": "Reproduciendo — caché no disponible",
+  "previous_tab": "Pestaña anterior",
+  "next_tab": "Pestaña siguiente",
+  "manual_scroll_on": "Desplazamiento manual: Sí",
+  "manual_scroll_off": "Desplazamiento manual: No"
 }

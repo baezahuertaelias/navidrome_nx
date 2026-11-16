@@ -30,7 +30,8 @@ is open. Collections use pages of 50. Artist/song sorting covers the complete
 matching result, up to 50,000 entries; initial loading can take longer on large
 libraries. Playlists queue their complete server-ordered track list. Favorites
 includes **Shuffle all** across all favorite-song pages. Playlist editing and
-changing stars remain in Navidrome.
+changing stars remain in Navidrome. Favorite-song rows include album-art
+thumbnails next to their track numbers.
 
 Home's Most played and Play again shelves use the server's frequent/recent album
 history; Discover uses random albums. Empty or unavailable sections show a
@@ -94,7 +95,7 @@ previously downloaded cache files remain on SD.
 | A | Select the focused item |
 | B | Back / return to the parent page |
 | X | Play / pause |
-| L / R | Previous / next song |
+| L / R | Previous / next song; previous / next tab in Settings |
 | Y | Refresh the library or Home; toggle follow on the lyrics screen |
 | ZR | Open the lyrics player |
 | − | Collapse / expand the sidebar |
@@ -104,8 +105,10 @@ previously downloaded cache files remain on SD.
 | Swipe | Scroll lists/lyrics vertically or Home shelves horizontally |
 
 Unavailable player/page controls are disabled. Swiping and multitouch do not
-activate song rows. Swiping lyrics disables automatic follow; use its sync control
-or Y to enable it again. Text-size and playback controls use icons with translated
+activate song rows. Lyrics ignore swipes and directional scrolling by default. Enable their
+**Manual scrolling** button to browse using swipes or Up/Down; B leaves manual
+mode, and pressing B again returns to the library. Turning manual mode off
+resumes follow for timed lyrics. Text-size changes use the dedicated button. Text-size and playback controls use icons with translated
 controller hints. Icons in the mini-player and lyrics buttons use visible glyph
 bounds for centering rather than the surrounding text font's line metrics.
 
@@ -120,6 +123,10 @@ bounds for centering rather than the surrounding text font's line metrics.
 
 Settings persist in `/switch/navidrome_nx/settings.json`. AMOLED uses pure black
 without effects. Rainbow cycles smoothly through muted colors over 180 seconds.
+Colored backgrounds use a broad, slowly drifting radial glow, with subtle
+dithering to soften visible gradient bands. The original XMB wave ribbons are
+retained; animation speed controls their motion (Off pauses it). Settings tabs
+wrap with L/R, and the upper-right Back control uses a centered arrow icon.
 Opacity adjusts color intensity over black (0–100%, default 80%). Bubbles bounce
 at screen edges and become smaller as their count increases (0–10). The clock
 uses Switch local time. Irrelevant appearance controls hide automatically.
@@ -228,10 +235,13 @@ checks. **Previously confirmed on Switch:** library/playback, Home shelves,
 sidebar/icons, lyrics navigation, web remote QR pairing, Settings tabs,
 search/order/list-grid controls, pagination, playlists, and waveform behavior.
 
-**Pending Switch verification:** the latest icon-centering correction, touch
-input, app song cache, Account labels, softer Rainbow changes, and the Ultrahand
-player. In-game audio mixing, overlay memory use, suspend/resume, and firmware /
-Atmosphère / Ultrahand compatibility have not been established by local tests.
+**Latest app build:** uploaded with nxlink and confirmed working by the user on
+Switch, including the latest UI corrections. Manual lyrics scrolling is opt-in;
+Settings L/R tabs, Favorites artwork, and the restored XMB waves are included.
+
+**Ultrahand hardware validation is pending:** in-game audio mixing, overlay
+memory use, suspend/resume, and firmware / Atmosphère / Ultrahand compatibility
+have not been established by local tests or the app's Switch confirmation.
 
 ## Limitations
 

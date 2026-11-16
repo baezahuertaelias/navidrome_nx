@@ -15,7 +15,7 @@ int main() {
     nvgBeginFrame(vg, 1280, 720, 1);
     nvgFontFaceId(vg, regular); nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
     bool correctedLineMetrics = false;
-    for (const auto* icon : {u8"\ue034",u8"\ue037",u8"\ue044",u8"\ue045",u8"\ue047",u8"\ue244",u8"\ue245",u8"\ue627",u8"\ue628",u8"\ue5c4"}) {
+    for (const auto* icon : {u8"\ue034",u8"\ue037",u8"\ue044",u8"\ue045",u8"\ue047",u8"\ue244",u8"\ue245",u8"\ue627",u8"\ue628",u8"\ue5c4",u8"\ue8d5"}) {
         float ink[4], line[4], centered[4];
         nvgTextGlyphBounds(vg, 0, 0, icon, nullptr, ink); nvgTextBounds(vg, 0, 0, icon, nullptr, line);
         assert(ink[2] > ink[0] && ink[3] > ink[1]);

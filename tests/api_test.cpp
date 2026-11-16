@@ -27,6 +27,16 @@ int main(int argc, char** argv) {
     }
     assert(rainbowHue(1) < 1.0f / 120);
     assert(rainbowHue(0) == 0 && rainbowHue(RainbowCycleSeconds) == 0);
+    for (double seconds : {0.0, 10.0, 300.0, 86400.0}) {
+        const auto glow = backgroundGlow(seconds, 1280, 720);
+        const auto next = backgroundGlow(seconds + 1.0 / 60, 1280, 720);
+        const auto scaled = backgroundGlow(seconds, 1920, 1080);
+        assert(glow.x >= 1280 * 0.15f && glow.x <= 1280 * 0.55f);
+        assert(glow.y >= 720 * 0.15f && glow.y <= 720 * 0.55f);
+        assert(std::hypot(next.x - glow.x, next.y - glow.y) < 1);
+        assert(std::abs(scaled.radius - glow.radius * 1.5f) < 0.001f);
+    }
+    assert(std::abs(backgroundGlow(10, 1280, 720).x - backgroundGlow(0, 1280, 720).x) > 1);
     assert(rainbowHue(RainbowCycleSeconds / 2) == 0.5f);
     for (double seconds : {0.0, 10.0, RainbowCycleSeconds - 0.01, 300.0, 86400.0}) {
         const float hue = rainbowHue(seconds), next = rainbowHue(seconds + 1.0 / 60);

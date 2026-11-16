@@ -6,41 +6,28 @@
 #include "clock_text.hpp"
 #include "lyric_emphasis.hpp"
 #include "audio_details.hpp"
+#include "lyrics_navigation.hpp"
 
-class LyricsPane : public brls::View {
+class LyricsPane : public brls::View, public LyricsNavigation {
 public:
     SongLyrics lyrics;
-    int selected = 0, active = -1, textSize = 26;
-    bool follow = false;
+    int textSize = 26;
     std::string message;
     LyricEmphasis emphasis;
-    float touchOffset = 0;
 
     LyricsPane() {
-        setFocusable(true);
+        setFocusable(false);
         setHideHighlightBackground(true);
         setHideHighlight(true);
         setHighlightCornerRadius(14);
         registerAction("", brls::BUTTON_UP, [this](brls::View*) { move(-1); return true; }, true);
         registerAction("", brls::BUTTON_DOWN, [this](brls::View*) { move(1); return true; }, true);
     }
-    bool onTouchScroll(float, float dy) override {
-        if (!dy) return false;
-        touchOffset += dy;
-        while (std::abs(touchOffset) >= 36) {
-            const int direction = touchOffset > 0 ? -1 : 1;
-            move(direction); touchOffset += direction * 36;
-        }
-        return true;
-    }
-    void move(int direction) {
-        follow = false;
-        if (!lyrics.empty()) selected = std::clamp(selected + direction, 0, static_cast<int>(lyrics.lines.size()) - 1);
-    }
+    bool onTouchScroll(float, float dy) override { return scroll(dy, lyrics.lines.size()); }
+    void move(int direction) { LyricsNavigation::move(direction, lyrics.lines.size()); }
     void update(long long elapsedMs) {
-        active = lyrics.activeLine(elapsedMs);
+        updateActive(lyrics.activeLine(elapsedMs));
         emphasis.update(active, std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count());
-        if (follow && active >= 0) selected = active;
     }
     void draw(NVGcontext* vg, float x, float y, float width, float height,
         brls::Style, brls::FrameContext*) override {
@@ -107,12 +94,13 @@ class LyricsScreen : public brls::Activity {
     brls::Label *title = nullptr, *artist = nullptr, *time = nullptr, *state = nullptr, *subtitle = nullptr, *brand = nullptr;
     brls::Rectangle* progress = nullptr;
     brls::Label* sourceInfo = nullptr;
-    brls::Button *pauseButton = nullptr, *followButton = nullptr;
+    brls::Button *pauseButton = nullptr, *followButton = nullptr, *manualButton = nullptr;
+    brls::Label* manualState = nullptr;
     LyricsPane* pane = nullptr;
     std::string trackId, artId;
     long long lastSecond = -1;
     bool lastPaused = false, lastPlaying = false;
-    bool lastFollow = false, lastSynced = false;
+    bool lastFollow = false, lastSynced = false, lastManual = false;
     std::string lastClock;
     std::function<void()> pause, previous, next;
 
@@ -132,7 +120,17 @@ class LyricsScreen : public brls::Activity {
         view->updateActionHint(brls::BUTTON_A, caption);
         parent->addView(view); return view;
     }
-    void toggleFollow() { if (pane->lyrics.synced) pane->follow = !pane->follow; }
+    void setManual(bool enabled) {
+        pane->setManual(enabled, pane->lyrics.synced);
+        pane->setFocusable(enabled);
+        if (enabled) brls::Application::giveFocus(pane);
+        else if (brls::Application::getCurrentFocus() == pane) brls::Application::giveFocus(manualButton);
+    }
+    void toggleFollow() {
+        if (!pane->lyrics.synced) return;
+        if (pane->manual) setManual(false);
+        else pane->follow = !pane->follow;
+    }
     void resizeText() { pane->textSize = pane->textSize == 26 ? 30 : pane->textSize == 30 ? 22 : 26; }
 public:
     std::function<void()> closed;
@@ -190,11 +188,13 @@ public:
         subtitle->setTextColor(nvgRGB(187, 190, 216)); subtitle->setHorizontalAlign(brls::HorizontalAlign::CENTER);
         pane = new LyricsPane(); pane->setHeight(0); pane->setGrow(1);
         pane->message = brls::getStr("app/loading_lyrics");
-        pane->registerClickAction([this](brls::View*) { resizeText(); return true; });
         lyricsPanel->addView(pane);
         auto options = new brls::Box(brls::Axis::ROW); options->setMarginTop(12);
         button(options, u8"\ue245", brls::getStr("app/text_size"), [this] { resizeText(); });
         followButton = button(options, u8"\ue628", brls::getStr("app/follow_off"), [this] { toggleFollow(); });
+        manualButton = button(options, u8"\ue8d5", brls::getStr("app/manual_scroll_off"), [this] { setManual(!pane->manual); });
+        manualState = label(options, brls::getStr("app/manual_scroll_off"), 16, 44);
+        manualState->setWidth(0); manualState->setGrow(1);
         lyricsPanel->addView(options); body->addView(lyricsPanel); root->addView(body);
         auto footer = new brls::Box(brls::Axis::ROW); footer->setHeight(32); footer->setShrink(0);
         label(footer, brls::getStr("app/lyrics_footer"), 16, 32)->setTextColor(nvgRGB(191, 194, 220));
@@ -202,13 +202,13 @@ public:
         return root;
     }
     void onContentAvailable() override {
-        registerAction(brls::getStr("app/back"), brls::BUTTON_B, [](brls::View*) { brls::Application::popActivity(); return true; });
+        registerAction(brls::getStr("app/back"), brls::BUTTON_B, [this](brls::View*) { if (pane->manual) setManual(false); else brls::Application::popActivity(); return true; });
         registerAction(brls::getStr("app/pause"), brls::BUTTON_X, [this](brls::View*) { pause(); return true; });
         registerAction(brls::getStr("app/previous"), brls::BUTTON_LB, [this](brls::View*) { previous(); return true; }, true);
         registerAction(brls::getStr("app/next"), brls::BUTTON_RB, [this](brls::View*) { next(); return true; }, true);
         registerAction(brls::getStr("app/auto_follow"), brls::BUTTON_Y, [this](brls::View*) { toggleFollow(); return true; });
     }
-    void focusLyrics() { brls::Application::giveFocus(pane); }
+    void focusLyrics() { brls::Application::giveFocus(manualButton); }
     void setTrack(const Entry& track) {
         if (trackId == track.id) return;
         trackId = track.id; artId.clear(); artwork->clearImage(); lastSecond = -1;
@@ -217,12 +217,12 @@ public:
         sourceInfo->setText((details.empty() ? brls::getStr("app/audio_source_unknown") : brls::getStr("app/audio_source", details))
             + "\n" + brls::getStr("app/playback_mp3", StreamBitRate));
         artist->setText(track.artist.empty() ? brls::getStr("app/unknown_artist") : track.artist);
-        pane->lyrics = {}; pane->selected = 0; pane->active = -1; pane->emphasis = {}; pane->follow = false;
+        setManual(false); pane->lyrics = {}; pane->reset(false); pane->emphasis = {};
         pane->message = brls::getStr("app/loading_lyrics");
         subtitle->setText(brls::getStr("app/loading_lyrics"));
     }
     void setLyrics(SongLyrics lyrics, const std::string& error = "") {
-        pane->lyrics = std::move(lyrics); pane->selected = 0; pane->active = -1; pane->emphasis = {}; pane->follow = pane->lyrics.synced;
+        setManual(false); pane->lyrics = std::move(lyrics); pane->reset(pane->lyrics.synced); pane->emphasis = {};
         pane->message = error.empty() ? brls::getStr("app/no_lyrics") : error;
         subtitle->setText(pane->lyrics.empty() ? pane->message : brls::getStr(pane->lyrics.synced ? "app/synced_lyrics" : "app/plain_lyrics"));
     }
@@ -231,6 +231,12 @@ public:
         if (currentClock != lastClock) { lastClock = currentClock; brand->setText((currentClock.empty() ? "" : currentClock + "   ") + "Navidrome NX"); }
         setTrack(track);
         pane->update(elapsedMs);
+        if (lastSecond < 0 || lastManual != pane->manual) {
+            lastManual = pane->manual;
+            manualButton->setStyle(pane->manual ? &brls::BUTTONSTYLE_PRIMARY : &brls::BUTTONSTYLE_DEFAULT);
+            const auto caption = brls::getStr(pane->manual ? "app/manual_scroll_on" : "app/manual_scroll_off");
+            manualButton->updateActionHint(brls::BUTTON_A, caption); manualState->setText(caption);
+        }
         if (lastSecond < 0 || lastFollow != pane->follow || lastSynced != pane->lyrics.synced) {
             lastFollow = pane->follow; lastSynced = pane->lyrics.synced;
             followButton->setText(pane->follow ? u8"\ue627" : u8"\ue628");

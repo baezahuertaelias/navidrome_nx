@@ -45,7 +45,7 @@ ICON		:=	resources/img/navidrome-icon.jpg
 INCLUDES	:=	src
 
 APP_TITLE	:=	Navidrome NX
-APP_AUTHOR	:=	Navidrome NX contributors
+APP_AUTHOR	:=	baezahuertaelias
 APP_VERSION	:=	1.0
 
 ROMFS				:=	resources

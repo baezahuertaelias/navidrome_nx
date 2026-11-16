@@ -81,7 +81,9 @@ public:
         auto root = new MusicSurface(); root->setPadding(24, 48, 20, 48);
         auto headerRow = new brls::Box(brls::Axis::ROW); headerRow->setHeight(56); headerRow->setShrink(0);
         header = new brls::Label(); header->setText(brls::getStr("app/settings")); header->setFontSize(30); header->setHeight(48); header->setWidth(0); header->setGrow(1); headerRow->addView(header);
-        auto back = new brls::Button(); back->setText(brls::getStr("app/back")); back->setWidth(140); back->setHeight(42); back->setShrink(0);
+        auto back = new brls::Button(); back->setText(u8"\ue5c4"); back->setWidth(52); back->setHeight(44); back->setShrink(0); back->setPadding(6);
+        back->applyXMLAttribute("font", "music"); back->applyXMLAttribute("fontSize", "26"); back->applyXMLAttribute("glyphCentered", "true");
+        back->updateActionHint(brls::BUTTON_A, brls::getStr("app/back"));
         back->registerClickAction([](brls::View*) { brls::Application::popActivity(); return true; }); headerRow->addView(back); root->addView(headerRow);
         const char* tabKeys[] = {"app/settings_appearance", "app/settings_layout", "app/settings_remote", "app/settings_account"};
         auto tabRow = new brls::Box(brls::Axis::ROW); tabRow->setHeight(44); tabRow->setShrink(0); tabRow->setMarginBottom(16);
@@ -134,6 +136,14 @@ public:
         selectTab(0); return root;
     }
     void onContentAvailable() override {
+        auto changeTab = [this](int direction) {
+            const int index = adjustSetting(activeTab, 0, static_cast<int>(tabs.size()) - 1, direction);
+            brls::Application::giveFocus(tabs[index]);
+            selectTab(index);
+            assert(brls::Application::getCurrentFocus() == tabs[index]);
+        };
+        registerAction(brls::getStr("app/previous_tab"), brls::BUTTON_LB, [changeTab](brls::View*) { changeTab(-1); return true; });
+        registerAction(brls::getStr("app/next_tab"), brls::BUTTON_RB, [changeTab](brls::View*) { changeTab(1); return true; });
         registerAction(brls::getStr("app/back"), brls::BUTTON_B, [](brls::View*) { brls::Application::popActivity(); return true; });
     }
     void poll() {

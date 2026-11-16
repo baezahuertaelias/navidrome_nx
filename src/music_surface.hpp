@@ -32,7 +32,8 @@ public:
             nvgFillColor(vg, shade(nvgHSL(hue, 0.3f, 0.12f)));
             nvgFill(vg);
         } else {
-            nvgFillPaint(vg, nvgLinearGradient(vg, x, y, x + width, y + height,
+            const auto glow = backgroundGlow(colorSeconds, width, height);
+            nvgFillPaint(vg, nvgRadialGradient(vg, x + glow.x, y + glow.y, 0, glow.radius,
                 shade(nvgLerpRGBA(bottomColors[preferences.background], topColors[preferences.background], 0.7f)), shade(bottomColors[preferences.background])));
             nvgFill(vg);
         }

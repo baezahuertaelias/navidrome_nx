@@ -76,7 +76,7 @@
   "follow_off": "Auto-follow: Off",
   "synced_lyrics": "Timed lyrics · Up/Down to browse manually",
   "plain_lyrics": "Plain lyrics · Up/Down to scroll",
-  "lyrics_footer": "Up/Down Scroll   A Text size   Y Auto-follow   X Pause   L/R Skip   B Library   + Exit",
+  "lyrics_footer": "Manual scroll button to browse   Y Follow   X Pause   L/R Skip   B Back",
   "settings": "Settings",
   "show_clock": "Show clock",
   "background": "Background color",
@@ -190,5 +190,9 @@
   "settings_amoled_hint": "Pure black without effects. Choose another color to adjust opacity and animation.",
   "settings_rainbow_hint": "A single color that changes smoothly, without diagonal gradient bands.",
   "cache_songs": "Cache songs (maximum 15)",
-  "playback_cache_error": "Playing — song cache unavailable"
+  "playback_cache_error": "Playing — song cache unavailable",
+  "previous_tab": "Previous tab",
+  "next_tab": "Next tab",
+  "manual_scroll_on": "Manual scrolling: On",
+  "manual_scroll_off": "Manual scrolling: Off"
 }

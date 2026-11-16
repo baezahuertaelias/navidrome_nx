@@ -45,3 +45,5 @@ nanovg=vendor/borealis/library/lib/extern/nanovg-deko3d
 gcc -std=c99 -I"$nanovg/include" -c "$nanovg/source/nanovg.c" -o /tmp/nanovg-test.o
 g++ -std=c++17 -I"$nanovg/include" tests/icon_alignment_test.cpp /tmp/nanovg-test.o -lm -o /tmp/icon_alignment_test
 /tmp/icon_alignment_test
+g++ -std=c++17 -Wall -Wextra -Werror -Isrc tests/lyrics_navigation_test.cpp -o /tmp/lyrics_navigation_test
+/tmp/lyrics_navigation_test

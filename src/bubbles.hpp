@@ -39,6 +39,12 @@ inline float rainbowHue(double seconds) {
     return static_cast<float>(std::fmod(seconds, RainbowCycleSeconds) / RainbowCycleSeconds);
 }
 
+inline Bubble backgroundGlow(double seconds, float width, float height) {
+    return {width * (0.35f + 0.2f * static_cast<float>(std::sin(seconds * 0.035))),
+        height * (0.35f + 0.2f * static_cast<float>(std::cos(seconds * 0.027))),
+        std::hypot(width, height) * 0.9f};
+}
+
 inline float xmbWaveY(size_t layer, float position, double seconds, float height) {
     const double phase = layer * 0.9;
     return height * (0.52f + layer * 0.045f
