@@ -1,0 +1,117 @@
+// SPDX-FileCopyrightText: 2021 natinusala
+// SPDX-FileCopyrightText: 2023 xfangfang
+// SPDX-License-Identifier: Apache-2.0
+
+#pragma once
+
+#include <aurore/core/platform.hpp>
+#include <aurore/platforms/desktop/desktop_font.hpp>
+#include <aurore/platforms/desktop/desktop_ime.hpp>
+#if defined(__linux__) and !defined(__SDL__)
+#include <dbus/dbus.h>
+#elif defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#elif defined(IOS) || defined(TVOS)
+#elif defined(__APPLE__)
+#include <IOKit/pwr_mgt/IOPMLib.h>
+#endif
+
+namespace aurore
+{
+
+class DesktopPlatform : public Platform
+{
+  public:
+    DesktopPlatform();
+    ~DesktopPlatform() override;
+
+    /// The environment variable `AURORE_` + `name` (environmentVariable()):
+    /// nullptr when it is not set.
+    static const char* environment(const std::string& name);
+
+    /// The locale AURORE_LANG asks for: a locale's name as
+    /// it is ("zh-Hant", an app's own), else read as a system's
+    /// ("fr_FR.UTF-8" gives "fr"), never a path. False when neither is set:
+    /// the system's language is used.
+    static bool localeFromEnvironmentVariable(std::string* locale);
+
+    std::string getName() override;
+
+    ThemeVariant getThemeVariant() override;
+    void setThemeVariant(ThemeVariant theme) override;
+    void followSystemTheme() override;
+    std::string getLocale() override;
+    ImeManager* getImeManager() override;
+
+    FontLoader* getFontLoader() override;
+    bool canShowBatteryLevel() override;
+    bool canShowWirelessLevel() override;
+    int getBatteryLevel() override;
+    bool isBatteryCharging() override;
+    bool hasWirelessConnection() override;
+    int getWirelessLevel() override;
+    bool hasEthernetConnection() override;
+    void disableScreenDimming(bool disable, const std::string& reason, const std::string& app) override;
+    bool runLoop(const std::function<bool()>& runLoopImpl) override;
+    bool isScreenDimmingDisabled() override;
+    void setBacklightBrightness(float brightness) override;
+    float getBacklightBrightness() override;
+    bool canSetBacklightBrightness() override;
+    std::string getIpAddress() override;
+    std::string getDnsServer() override;
+    bool isApplicationMode() override;
+    void exitToHomeMode(bool value) override;
+    void forceEnableGamePlayRecording() override;
+    void openBrowser(std::string url) override;
+
+#if (defined(__APPLE__) || defined(__linux__)) && !defined(ANDROID) && !defined(IOS) && !defined(TVOS)
+    /**
+     * The command openBrowser() runs for this url: xdg-open or open, with the
+     * url as one argument; empty if isBrowserUrl() refuses it
+     */
+    static std::vector<std::string> browserCommand(const std::string& url);
+
+    /**
+     * Starts args[0], looked up in PATH, with these arguments and no shell
+     * @return the child's pid, or -1
+     */
+    static int spawnProcess(const std::vector<std::string>& args);
+#endif
+
+    inline static bool RESTART_APP       = false;
+    inline static std::string GAMEPAD_DB = AURORE_ASSET("gamepad/gamecontrollerdb.txt");
+
+  protected:
+    /// The system's variant is now this one: the app's too while it follows
+    /// the system's
+    void systemThemeChanged(ThemeVariant theme);
+
+    DesktopFontLoader* fontLoader = nullptr;
+    ThemeVariant themeVariant     = ThemeVariant::LIGHT;
+    /// The system's variant (AURORE_THEME's when set), whatever the app chose
+    ThemeVariant systemThemeVariant = ThemeVariant::LIGHT;
+    DesktopImeManager* imeManager   = nullptr;
+    std::string locale;
+    /// AURORE_LANG gave the locale: the system's is not looked for
+    bool localeFromEnvironment = false;
+    /// AURORE_THEME gave the theme: the system's is not looked for
+    bool themeFromEnvironment = false;
+    /// The variant is the system's and changes with it, until the app gives
+    /// one (SDL3 tells when the system's changes; not with AURORE_THEME)
+    bool themeFollowsSystem    = false;
+    bool screenDimmingDisabled = false;
+#ifdef __linux__
+    uint32_t inhibitCookie = 0;
+#ifndef __SDL__
+    std::string inhibitRequestPath;
+#endif
+#elif defined(_WIN32)
+    HANDLE hLCD;
+#elif defined(IOS) || defined(TVOS)
+#elif defined(__APPLE__)
+    IOPMAssertionID assertionID = 0;
+#endif
+};
+
+} // namespace aurore

@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: 2026 JigSawFr
+# SPDX-License-Identifier: Apache-2.0
+
+# Installs the library for other CMake projects (AURORE_INSTALL=ON):
+#
+#   find_package(Aurore REQUIRED)
+#   target_link_libraries(app PRIVATE Aurore::aurore)
+#
+# Included from library/CMakeLists.txt once the aurore target exists.
+# Desktop only: the consoles build the library with the app.
+
+if (NOT PLATFORM_DESKTOP)
+    message(FATAL_ERROR "AURORE_INSTALL is for the desktop build (PLATFORM_DESKTOP=ON)")
+endif ()
+if (USE_LIBROMFS)
+    message(FATAL_ERROR "AURORE_INSTALL needs USE_LIBROMFS=OFF: libromfs embeds one app's resources")
+endif ()
+
+include(CMakePackageConfigHelpers)
+
+set(AURORE_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/Aurore)
+set(AURORE_EXPORTED aurore yogacore)
+if (NOT USE_SYSTEM_TINYXML2 AND NOT AURORE_FETCH_DEPS)
+    list(APPEND AURORE_EXPORTED tinyxml2)
+endif ()
+# The test harness, with aurore_add_tests() (AuroreTesting.cmake), when built
+if (TARGET aurore_test)
+    list(APPEND AURORE_EXPORTED aurore_test)
+    set_target_properties(aurore_test PROPERTIES EXPORT_NAME test)
+    install(FILES ${AURORE_PATH}/cmake/AuroreTesting.cmake DESTINATION ${AURORE_CMAKE_DIR})
+endif ()
+
+install(TARGETS ${AURORE_EXPORTED} EXPORT AuroreTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY ${AURORE_PATH}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# yoga's headers, where its target looks for them (<prefix>/include/yoga)
+install(DIRECTORY ${AURORE_PATH}/lib/extern/yoga/yoga DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/yoga
+        FILES_MATCHING PATTERN "*.h")
+install(EXPORT AuroreTargets NAMESPACE Aurore:: DESTINATION ${AURORE_CMAKE_DIR})
+
+# What AuroreConfig.cmake looks for before it loads the targets: the
+# vendored GLFW and SDL install their own packages (tweeny, only
+# compiled into the library, is not one)
+set(AURORE_DEPENDENCIES "find_dependency(Threads)\n")
+if (USE_SYSTEM_TINYXML2 OR AURORE_FETCH_DEPS)
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(tinyxml2)\n")
+endif ()
+if (USE_BOOST_FILESYSTEM)
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(Boost 1.44 COMPONENTS filesystem)\n")
+endif ()
+if (USE_SDL3)
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(SDL3)\n")
+elseif (USE_SDL2)
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(SDL2)\n")
+else ()
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(glfw3)\n")
+endif ()
+if (TARGET PkgConfig::DBUS)
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(PkgConfig)\npkg_check_modules(DBUS REQUIRED QUIET IMPORTED_TARGET dbus-1)\n")
+endif ()
+if (USE_FREETYPE)
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(Freetype)\n")
+endif ()
+if (USE_FRIBIDI)
+    string(APPEND AURORE_DEPENDENCIES "find_dependency(PkgConfig)\npkg_check_modules(AURORE_PC_FRIBIDI REQUIRED QUIET IMPORTED_TARGET fribidi)\n")
+endif ()
+if (AURORE_TEST_EGL)
+    # libEGL alone, as the harness links it here (FindOpenGL's OpenGL::EGL also needs libOpenGL)
+    string(APPEND AURORE_DEPENDENCIES [=[
+if (NOT TARGET Aurore::egl)
+    find_library(AURORE_EGL_LIBRARY EGL)
+    find_path(AURORE_EGL_INCLUDE_DIR EGL/egl.h)
+    if (NOT AURORE_EGL_LIBRARY OR NOT AURORE_EGL_INCLUDE_DIR)
+        set(Aurore_FOUND FALSE)
+        set(Aurore_NOT_FOUND_MESSAGE "Aurore's test harness needs EGL (libegl-dev)")
+        return()
+    endif ()
+    add_library(Aurore::egl UNKNOWN IMPORTED)
+    set_target_properties(Aurore::egl PROPERTIES
+            IMPORTED_LOCATION "${AURORE_EGL_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${AURORE_EGL_INCLUDE_DIR}")
+endif ()
+]=])
+endif ()
+if (TARGET aurore_test)
+    set(AURORE_TESTING "include(\"\${CMAKE_CURRENT_LIST_DIR}/AuroreTesting.cmake\")")
+endif ()
+
+configure_package_config_file(${AURORE_PATH}/cmake/AuroreConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/AuroreConfig.cmake
+        INSTALL_DESTINATION ${AURORE_CMAKE_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/AuroreConfig.cmake DESTINATION ${AURORE_CMAKE_DIR})
+
+# find_package(Aurore 0.1): before 1.0 a minor version may break the API, so it only accepts the same minor version
+if (AURORE_VERSION VERSION_LESS 1.0)
+    set(AURORE_COMPATIBILITY SameMinorVersion)
+else ()
+    set(AURORE_COMPATIBILITY SameMajorVersion)
+endif ()
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/AuroreConfigVersion.cmake
+        VERSION ${AURORE_VERSION} COMPATIBILITY ${AURORE_COMPATIBILITY})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/AuroreConfigVersion.cmake DESTINATION ${AURORE_CMAKE_DIR})

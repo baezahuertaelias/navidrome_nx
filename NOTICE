@@ -1,0 +1,8 @@
+Navidrome NX full-screen application
+Copyright 2026 Elias (baezahuertaelias)
+
+The full-screen application uses Aurore Cadran and is distributed under
+GPL-3.0-or-later; see LICENSE. This does not relicense third-party components,
+assets, or the separate Ultrahand overlay and sys-tune module, which retain
+their respective licenses. See vendor/aurore/NOTICE, vendor/aurore/LICENSES,
+and the individual vendor directories and font notices.

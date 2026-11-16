@@ -19,3 +19,5 @@ vendor/sys-tune/sys-tune/build/
 vendor/sys-tune/sys-tune/nxExt/build/
 config.json.tmp
 config.json.bak
+build.aurore/
+build.ui/

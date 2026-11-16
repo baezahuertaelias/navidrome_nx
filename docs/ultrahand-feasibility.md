@@ -1,5 +1,8 @@
 # Ultrahand mini-player feasibility
 
+Historical design note: the full-screen app migrates from Borealis to Aurore on
+`feat/aurore-ui`; framework references below describe the original baseline.
+
 Original assessment: 2026-11-16. This document records the initial architecture
 proposal. A native overlay backed by the existing sys-tune audio module is now
 implemented; see [the actual build, installation, limits and validation status](ultrahand.md).

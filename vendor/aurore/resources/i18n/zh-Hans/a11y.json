@@ -1,0 +1,19 @@
+{
+    "role": {
+        "button": "按钮",
+        "header": "标题",
+        "image": "图像",
+        "toggle": "开关",
+        "slider": "滑块",
+        "text_field": "文本框",
+        "tab": "标签页",
+        "list": "列表",
+        "dialog": "对话框"
+    },
+    "disabled": "已停用",
+    "on": "已开启",
+    "off": "已关闭",
+    "selected": "已选择",
+    "position": "第{}项，共{}项",
+    "percent": "{}%"
+}

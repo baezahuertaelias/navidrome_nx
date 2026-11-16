@@ -1,0 +1,194 @@
+// SPDX-FileCopyrightText: 2021 XITRIX
+// SPDX-License-Identifier: Apache-2.0
+
+#include "aurore/views/widgets/wireless.hpp"
+
+#include "aurore/core/thread.hpp"
+
+#ifdef __SWITCH__
+extern "C"
+{
+#include <switch/services/nifm.h>
+}
+#endif
+
+namespace aurore
+{
+
+WirelessWidget::WirelessWidget()
+{
+    platform = Application::getPlatform();
+    if (!platform->canShowWirelessLevel())
+        return;
+
+    setSize(Size(44, 44));
+
+    _0 = new Image();
+    _0->setSize(Size(44, 44));
+    _0->setScalingType(ImageScalingType::FIT);
+    _0->detach();
+
+    _1 = new Image();
+    _1->setSize(Size(44, 44));
+    _1->setScalingType(ImageScalingType::FIT);
+    _1->detach();
+
+    _2 = new Image();
+    _2->setSize(Size(44, 44));
+    _2->setScalingType(ImageScalingType::FIT);
+    _2->detach();
+
+    _3 = new Image();
+    _3->setSize(Size(44, 44));
+    _3->setScalingType(ImageScalingType::FIT);
+    _3->detach();
+
+    ethernet = new Image();
+    ethernet->setSize(Size(44, 44));
+    ethernet->setScalingType(ImageScalingType::FIT);
+    ethernet->detach();
+
+    platform = Application::getPlatform();
+    applyTheme(platform->getThemeVariant());
+
+    addView(_0);
+    addView(_1);
+    addView(_2);
+    addView(_3);
+    addView(ethernet);
+}
+
+void WirelessWidget::applyTheme(ThemeVariant theme)
+{
+    switch (theme)
+    {
+        case ThemeVariant::LIGHT:
+            _0->setImageFromRes("img/sys/wifi_0_light.png");
+            _1->setImageFromRes("img/sys/wifi_1_light.png");
+            _2->setImageFromRes("img/sys/wifi_2_light.png");
+            _3->setImageFromRes("img/sys/wifi_3_light.png");
+            ethernet->setImageFromRes("img/sys/ethernet_light.png");
+            break;
+        case ThemeVariant::DARK:
+            _0->setImageFromRes("img/sys/wifi_0_dark.png");
+            _1->setImageFromRes("img/sys/wifi_1_dark.png");
+            _2->setImageFromRes("img/sys/wifi_2_dark.png");
+            _3->setImageFromRes("img/sys/wifi_3_dark.png");
+            ethernet->setImageFromRes("img/sys/ethernet_dark.png");
+            break;
+    }
+}
+
+void WirelessWidget::updateState()
+{
+    static Time time = 0;
+    Time now         = getCPUTimeUsec();
+    if ((now - time) > 5000000 || time == 0)
+    {
+        aurore::Logger::verbose("hasWirelessConnection: {}; wifiLevel: {}", hasWirelessConnection, wifiLevel);
+#ifdef ANDROID
+        hasEthernetConnection = Application::getPlatform()->hasEthernetConnection();
+        hasWirelessConnection = Application::getPlatform()->hasWirelessConnection();
+        wifiLevel             = Application::getPlatform()->getWirelessLevel();
+#else
+        // Read on the task thread, applied on the UI thread, which draws
+        // them; one read at a time
+        if (updating)
+            return;
+        updating = true;
+        aurore::async([]()
+            {
+                bool ethernet = false, wireless = false;
+                int level     = 0;
+#ifdef __SWITCH__
+                // Reduce service calls
+                // and fix support for emulator (Ryujinx) as it doesn't support :
+                // nifmIsWirelessCommunicationEnabled() / nifmIsEthernetCommunicationEnabled().
+                NifmInternetConnectionType type;
+                u32 wifiSignal;
+                NifmInternetConnectionStatus status;
+                Result ret = nifmGetInternetConnectionStatus(&type, &wifiSignal, &status);
+                if (ret == 0)
+                {
+                    ethernet = type == NifmInternetConnectionType_Ethernet;
+                    wireless = type == NifmInternetConnectionType_WiFi;
+                    level    = (int)wifiSignal;
+                }
+#else
+                ethernet = Application::getPlatform()->hasEthernetConnection();
+                wireless = Application::getPlatform()->hasWirelessConnection();
+                level    = Application::getPlatform()->getWirelessLevel();
+#endif
+                aurore::sync([ethernet, wireless, level]()
+                    {
+                        hasEthernetConnection = ethernet;
+                        hasWirelessConnection = wireless;
+                        wifiLevel             = level;
+                        updating              = false; }); });
+#endif
+        time = now;
+    }
+}
+
+void WirelessWidget::draw(NVGcontext* vg, float x, float y, float width, float height, Style style, FrameContext* ctx)
+{
+    updateState();
+
+    if (hasEthernetConnection)
+    {
+        _0->setVisibility(Visibility::GONE);
+        _1->setVisibility(Visibility::GONE);
+        _2->setVisibility(Visibility::GONE);
+        _3->setVisibility(Visibility::GONE);
+        ethernet->setVisibility(Visibility::VISIBLE);
+    }
+    else if (!hasWirelessConnection)
+    {
+        _0->setVisibility(Visibility::VISIBLE);
+        _1->setVisibility(Visibility::GONE);
+        _2->setVisibility(Visibility::GONE);
+        _3->setVisibility(Visibility::GONE);
+        ethernet->setVisibility(Visibility::GONE);
+    }
+    else
+    {
+        _0->setVisibility(Visibility::GONE);
+        _1->setVisibility(Visibility::VISIBLE);
+        _2->setVisibility(Visibility::VISIBLE);
+        _3->setVisibility(Visibility::VISIBLE);
+        ethernet->setVisibility(Visibility::GONE);
+
+        switch (wifiLevel)
+        {
+            case 0:
+                _1->setAlpha(0.2f);
+                _2->setAlpha(0.2f);
+                _3->setAlpha(0.2f);
+                break;
+            case 1:
+                _1->setAlpha(1);
+                _2->setAlpha(0.2f);
+                _3->setAlpha(0.2f);
+                break;
+            case 2:
+                _1->setAlpha(1);
+                _2->setAlpha(1);
+                _3->setAlpha(0.2f);
+                break;
+            default:
+                _1->setAlpha(1);
+                _2->setAlpha(1);
+                _3->setAlpha(1);
+                break;
+        }
+    }
+
+    Box::draw(vg, x, y, width, height, style, ctx);
+}
+
+View* WirelessWidget::create()
+{
+    return new WirelessWidget();
+}
+
+} // namespace aurore

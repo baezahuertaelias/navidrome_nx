@@ -62,7 +62,7 @@ collection. If exiting entirely, unfinished downloads are cancelled.
 
 ## Limits and storage
 
-- This is a separate player from the Borealis app and Android web remote; those
+- This is a separate player from the Aurore app and Android web remote; those
   continue to use the app's own queue. They do not control sys-tune.
 - Cache: `/switch/navidrome_nx/overlay-cache`, at most 256 MiB of MP3 files,
   maximum 24 MiB per track. Files are written directly to SD using bounded curl

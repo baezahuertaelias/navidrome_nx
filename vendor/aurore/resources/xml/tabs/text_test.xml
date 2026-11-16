@@ -1,0 +1,62 @@
+<aurore:Box
+        width="auto"
+        height="auto">
+
+    <aurore:ScrollingFrame
+            width="auto"
+            height="auto"
+            marginRight="460"
+            grow="1.0">
+
+        <aurore:Box
+                width="auto"
+                height="auto"
+                paddingLeft="@style/aurore/tab_frame/content_padding_sides"
+                paddingRight="@style/aurore/tab_frame/content_padding_sides"
+                paddingTop="@style/aurore/tab_frame/content_padding_top_bottom"
+                paddingBottom="@style/aurore/tab_frame/content_padding_top_bottom">
+
+            <aurore:Box
+                    grow="1"
+                    axis="column">
+                <aurore:SliderCell
+                        grow="1"
+                        id="width"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="height"/>
+                <aurore:SelectorCell
+                        id="horizontal"/>
+                <aurore:SelectorCell
+                        id="vertical"/>
+                <aurore:BooleanCell
+                        id="singleLine"/>
+            </aurore:Box>
+
+        </aurore:Box>
+
+    </aurore:ScrollingFrame>
+
+    <aurore:Box
+            height="404"
+            width="404"
+            paddingBottom="2"
+            paddingTop="2"
+            paddingLeft="2"
+            paddingRight="2"
+            positionType="absolute"
+            borderThickness="2"
+            cornerRadius="4"
+            borderColor="@theme/aurore/header/border"
+            positionTop="64"
+            axis="column"
+            positionRight="30">
+        <aurore:Label
+                id="label"
+                height="auto"
+                width="auto"
+                wireframe="true"
+                text="text 123456 qwe"/>
+    </aurore:Box>
+
+</aurore:Box>

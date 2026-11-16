@@ -22,3 +22,5 @@ config.json
 overlay/build
 vendor/sys-tune/sys-tune/build
 vendor/sys-tune/sys-tune/nxExt/build
+build.aurore
+build.ui

@@ -1,0 +1,98 @@
+<aurore:Box
+        width="auto"
+        height="auto">
+
+    <aurore:ScrollingFrame
+            width="auto"
+            height="auto"
+            marginRight="460"
+            grow="1.0">
+
+        <aurore:Box
+                width="auto"
+                height="auto"
+                paddingLeft="@style/aurore/tab_frame/content_padding_sides"
+                paddingRight="@style/aurore/tab_frame/content_padding_sides"
+                paddingTop="@style/aurore/tab_frame/content_padding_top_bottom"
+                paddingBottom="@style/aurore/tab_frame/content_padding_top_bottom">
+
+            <aurore:Box
+                    grow="1"
+                    axis="column">
+                <aurore:Box>
+                    <aurore:Button
+                            id="play"
+                            text="@i18n/demo/transform/play"
+                            grow="1"
+                            margin="10"
+                            style="primary"/>
+
+                    <aurore:Button
+                            id="reset"
+                            grow="1"
+                            margin="10"
+                            text="@i18n/demo/transform/reset"/>
+                </aurore:Box>
+                <aurore:SliderCell
+                        grow="1"
+                        id="transX"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="transY"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="scaleX"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="scaleY"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="skewX"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="skewY"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="rotate"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="width"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="height"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="fontScaleX"/>
+                <aurore:SliderCell
+                        grow="1"
+                        id="fontScaleY"/>
+            </aurore:Box>
+
+        </aurore:Box>
+
+    </aurore:ScrollingFrame>
+
+    <aurore:Box
+            height="404"
+            width="404"
+            paddingBottom="2"
+            paddingTop="2"
+            paddingLeft="2"
+            paddingRight="2"
+            positionType="absolute"
+            borderThickness="2"
+            cornerRadius="4"
+            borderColor="@theme/aurore/header/border"
+            positionTop="64"
+            positionRight="30">
+        <TransformBox
+                id="box"
+                width="100"
+                height="100"
+                cornerRadius="4"
+                clipsToBounds="false"
+                scalingType="stretch"
+                image="@res/img/tiles.png"/>
+    </aurore:Box>
+
+</aurore:Box>

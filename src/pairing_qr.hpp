@@ -3,7 +3,7 @@
 #include <algorithm>
 #include "pairing_code.hpp"
 
-class PairingQr : public brls::View {
+class PairingQr : public aurore::View {
     uint8_t modules[PairingQrBytes]{};
     std::string payload;
     bool valid = false;
@@ -15,7 +15,7 @@ public:
         valid = encodePairingQr(value, modules);
     }
     void draw(NVGcontext* vg, float x, float y, float width, float height,
-        brls::Style, brls::FrameContext*) override {
+        aurore::Style, aurore::FrameContext*) override {
         if (!valid) return;
         const int size = qrcodegen_getSize(modules);
         const float step = std::floor(std::min(width, height) / (size + 8));

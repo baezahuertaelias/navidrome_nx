@@ -1,0 +1,247 @@
+<aurore:ScrollingFrame
+        width="auto"
+        height="auto"
+        axis="column"
+        grow="1.0">
+
+    <aurore:Box
+            alignItems="center"
+            width="auto"
+            axis="column"
+            marginRight="30"
+            height="auto">
+
+        <aurore:Box
+                backgroundColor="@theme/cadran/surf"
+                justifyContent="center"
+                margin="10"
+                width="90%"
+                cornerRadius="10"
+                height="70">
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+        </aurore:Box>
+        <aurore:Label
+                width="auto"
+                height="auto"
+                text="justifyContent: center"
+                marginBottom="10px" />
+
+        <aurore:Box
+                backgroundColor="@theme/cadran/surf"
+                justifyContent="spaceBetween"
+                margin="10"
+                width="90%"
+                cornerRadius="10"
+                height="70">
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+        </aurore:Box>
+        <aurore:Label
+                width="auto"
+                height="auto"
+                text="justifyContent: spaceBetween"
+                marginBottom="10px" />
+        <aurore:Box
+                backgroundColor="@theme/cadran/surf"
+                justifyContent="flexStart"
+                margin="10"
+                width="90%"
+                cornerRadius="10"
+                height="70">
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/coral"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/blue"/>
+        </aurore:Box>
+        <aurore:Label
+                width="auto"
+                height="auto"
+                text="justifyContent: flexStart"
+                marginBottom="10px" />
+
+        <aurore:Box
+                backgroundColor="@theme/cadran/surf"
+                justifyContent="flexEnd"
+                margin="10"
+                width="90%"
+                cornerRadius="10"
+                height="70">
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/coral"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/blue"/>
+        </aurore:Box>
+        <aurore:Label
+                width="auto"
+                height="auto"
+                text="justifyContent: flexEnd"
+                marginBottom="10px" />
+
+        <aurore:Box
+                backgroundColor="@theme/cadran/surf"
+                justifyContent="flexEnd"
+                direction="rightToLeft"
+                margin="10"
+                width="90%"
+                cornerRadius="10"
+                height="70">
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/coral"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    cornerRadius="10"
+                    color="@theme/cadran/blue"/>
+        </aurore:Box>
+        <aurore:Label
+                width="auto"
+                height="auto"
+                text="justifyContent: flexEnd; direction: rightToLeft"
+                marginBottom="10px" />
+
+        <aurore:Box
+                backgroundColor="@theme/cadran/surf"
+                justifyContent="center"
+                margin="10"
+                width="90%"
+                cornerRadius="10"
+                height="70">
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    grow="1"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    grow="2"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    grow="1"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+        </aurore:Box>
+        <aurore:Label
+                width="auto"
+                height="auto"
+                text="grow: 1 / 2 / 1"
+                marginBottom="10px" />
+
+        <aurore:Box
+                backgroundColor="@theme/cadran/surf"
+                wireframe="true"
+                axis="column"
+                margin="10"
+                width="90%"
+                cornerRadius="10"
+                height="210">
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    grow="1"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    grow="2"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+            <aurore:Rectangle
+                    width="50"
+                    height="50"
+                    margin="10"
+                    grow="1"
+                    cornerRadius="10"
+                    color="@theme/cadran/teal_fill"/>
+        </aurore:Box>
+        <aurore:Label
+                width="auto"
+                height="auto"
+                text="axis: column; wireframe: true"
+                marginBottom="10px" />
+
+    </aurore:Box>
+
+</aurore:ScrollingFrame>

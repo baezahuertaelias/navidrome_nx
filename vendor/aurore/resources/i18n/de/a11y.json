@@ -1,0 +1,19 @@
+{
+    "role": {
+        "button": "Schaltfläche",
+        "header": "Überschrift",
+        "image": "Bild",
+        "toggle": "Schalter",
+        "slider": "Schieberegler",
+        "text_field": "Textfeld",
+        "tab": "Tab",
+        "list": "Liste",
+        "dialog": "Dialogfeld"
+    },
+    "disabled": "deaktiviert",
+    "on": "ein",
+    "off": "aus",
+    "selected": "ausgewählt",
+    "position": "{} von {}",
+    "percent": "{} %"
+}

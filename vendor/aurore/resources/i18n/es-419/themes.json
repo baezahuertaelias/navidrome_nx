@@ -1,0 +1,19 @@
+{
+    "presets": {
+        "high_contrast_dark": "Alto contraste oscuro",
+        "high_contrast_light": "Alto contraste claro",
+        "ocean": "Océano",
+        "amethyst": "Amatista",
+        "sand": "Arena",
+        "winter": "Invierno",
+        "valentine": "Día de San Valentín",
+        "lunar_new_year": "Año Nuevo Lunar",
+        "spring": "Primavera",
+        "summer": "Verano",
+        "autumn": "Otoño",
+        "halloween": "Halloween",
+        "christmas": "Navidad",
+        "new_year": "Año Nuevo",
+        "seasonal": "Según la estación"
+    }
+}

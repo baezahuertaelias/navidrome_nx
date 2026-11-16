@@ -4,7 +4,7 @@
 #include "audio_waveform.hpp"
 #include "settings.hpp"
 
-class WaveformView : public brls::View {
+class WaveformView : public aurore::View {
     const AudioWaveform& audio;
     std::array<float, AudioWaveform::Bins> displayed{};
     std::array<float, 2> levels{};
@@ -12,7 +12,7 @@ class WaveformView : public brls::View {
 public:
     explicit WaveformView(const AudioWaveform& audio) : audio(audio) { setDimensions(140, 30); setShrink(0); }
     void draw(NVGcontext* vg, float x, float y, float width, float height,
-        brls::Style, brls::FrameContext*) override {
+        aurore::Style, aurore::FrameContext*) override {
         const auto now = std::chrono::steady_clock::now();
         const float seconds = std::min(0.1f, std::chrono::duration<float>(now - lastDraw).count());
         lastDraw = now;
@@ -51,7 +51,7 @@ public:
         if (preferences.visualizer == 2) {
             constexpr int segments = 18;
             const float labelWidth = 14, step = (width - labelWidth) / segments;
-            nvgFontFaceId(vg, brls::Application::getFont(brls::FONT_REGULAR));
+            nvgFontFaceId(vg, aurore::Application::getFont(aurore::FONT_REGULAR));
             nvgFontSize(vg, 10); nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
             for (size_t channel = 0; channel < levels.size(); ++channel) {
                 const float top = y + 2 + channel * (height / 2);

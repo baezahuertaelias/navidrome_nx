@@ -1,0 +1,19 @@
+{
+    "role": {
+        "button": "botón",
+        "header": "encabezado",
+        "image": "imagen",
+        "toggle": "interruptor",
+        "slider": "control deslizante",
+        "text_field": "campo de texto",
+        "tab": "pestaña",
+        "list": "lista",
+        "dialog": "cuadro de diálogo"
+    },
+    "disabled": "no disponible",
+    "on": "activado",
+    "off": "desactivado",
+    "selected": "seleccionado",
+    "position": "{} de {}",
+    "percent": "{} %"
+}

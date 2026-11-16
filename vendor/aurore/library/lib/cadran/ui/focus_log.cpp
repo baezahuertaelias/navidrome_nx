@@ -1,0 +1,26 @@
+// SPDX-FileCopyrightText: 2026 JigSawFr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include <aurore/cadran/ui/focus_log.hpp>
+
+#include <aurore.hpp>
+
+#include <aurore/cadran/ui/prefs.hpp>
+
+namespace focus_log
+{
+void install()
+{
+#if !defined(__SWITCH__) && !defined(__EMSCRIPTEN__)
+    static bool done = false;
+    if (done || !ui::env_flag("FOCUS_LOG"))
+        return;
+    done = true;
+    aurore::Application::getGlobalFocusChangeEvent()->subscribe([](aurore::View* view)
+        {
+        // A list's line (a sheet's too), else a dialog's button.
+        if (auto* cell = dynamic_cast<aurore::DetailCell*>(view)) aurore::Logger::info("focus: {}", cell->title->getFullText());
+        else if (auto* button = dynamic_cast<aurore::Button*>(view)) aurore::Logger::info("focus: {}", button->getText()); });
+#endif
+}
+} // namespace focus_log

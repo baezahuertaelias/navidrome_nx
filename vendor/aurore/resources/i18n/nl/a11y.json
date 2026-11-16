@@ -1,0 +1,19 @@
+{
+    "role": {
+        "button": "knop",
+        "header": "kop",
+        "image": "afbeelding",
+        "toggle": "schakelaar",
+        "slider": "schuifregelaar",
+        "text_field": "tekstveld",
+        "tab": "tabblad",
+        "list": "lijst",
+        "dialog": "dialoogvenster"
+    },
+    "disabled": "niet beschikbaar",
+    "on": "aan",
+    "off": "uit",
+    "selected": "geselecteerd",
+    "position": "{} van {}",
+    "percent": "{}%"
+}

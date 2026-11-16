@@ -1,0 +1,764 @@
+// SPDX-FileCopyrightText: 2020-2021 natinusala
+// SPDX-FileCopyrightText: 2021 XITRIX
+// SPDX-License-Identifier: Apache-2.0
+
+#include <aurore/cadran/ui/effects.hpp>
+#include <aurore/core/application.hpp>
+#include <aurore/core/touch/scroll_gesture.hpp>
+#include <aurore/core/touch/tap_gesture.hpp>
+#include <aurore/views/scrolling_frame.hpp>
+
+namespace aurore
+{
+
+#define SCROLLING_INDICATOR_WIDTH 4
+
+ScrollingFrame::ScrollingFrame()
+{
+    AURORE_REGISTER_ENUM_XML_ATTRIBUTE(
+        "scrollingBehavior", ScrollingBehavior, this->setScrollingBehavior,
+        {
+            { "natural", ScrollingBehavior::NATURAL },
+            { "centered", ScrollingBehavior::CENTERED },
+        });
+
+    setupScrollingIndicator();
+
+    this->setFocusable(true);
+    this->setMaximumAllowedXMLElements(1);
+
+    addGestureRecognizer(new ScrollGestureRecognizer([this](PanGestureStatus state, Sound* soundToPlay)
+        {
+        if (state.state == GestureState::FAILED || state.state == GestureState::UNSURE || state.state == GestureState::INTERRUPTED)
+        {
+            // When a second finger is placed during a rubber-band drag the pan recognizer
+            // fires UNSURE (new touch-down) then FAILs silently — the FAILED event is never
+            // dispatched because pan_gesture sets lastState=FAILED immediately.  Clear the
+            // rubber-band flag here so draw()'s per-frame auto-correct can snap the content
+            // back to valid bounds without any extra gesture handling.
+            if (isRubberBanding)
+            {
+                this->contentOffsetY.setEndCallback([](bool) {});
+                isRubberBanding = false;
+            }
+            return;
+        }
+
+        if (state.deltaOnly)
+        {
+            // Scroll-wheel / trackpad delta — no rubber-band, plain offset
+            float newScroll = this->contentOffsetY - state.delta.y;
+            startScrolling(false, newScroll);
+            return;
+        }
+
+        static float startY;
+        if (state.state == GestureState::START)
+        {
+            // Only steal gamepad focus to enable natural scrolling.
+            // On touch, grabbing focus plays a sound and interrupts child views.
+            if (Application::getInputType() != InputType::TOUCH)
+                Application::giveFocus(this);
+            startY          = this->contentOffsetY;
+            isRubberBanding = false;
+        }
+
+        // Raw scroll position computed from total finger displacement
+        float rawScroll   = startY - (state.position.y - state.startPosition.y);
+        float contentH    = getContentHeight();
+        float bottomLimit = contentH - getScrollingAreaHeight();
+
+        // Apply rubber-band resistance when dragging past the scroll boundaries
+        float newScroll = rawScroll;
+        if (bottomLimit > 0.0f)
+        {
+            if (rawScroll < 0.0f)
+            {
+                newScroll       = rawScroll * 0.35f;
+                isRubberBanding = true;
+            }
+            else if (rawScroll > bottomLimit)
+            {
+                newScroll       = bottomLimit + (rawScroll - bottomLimit) * 0.35f;
+                isRubberBanding = true;
+            }
+            else
+            {
+                newScroll       = rawScroll;
+                isRubberBanding = false;
+            }
+        }
+        else
+        {
+            newScroll = rawScroll;
+        }
+
+        if (state.state != GestureState::END)
+        {
+            startScrolling(false, newScroll);
+        }
+        else
+        {
+            float currentOffset = static_cast<float>(this->contentOffsetY);
+            float clampMax      = std::max(0.0f, bottomLimit);
+            bool  outOfBounds   = (currentOffset < 0.0f) || (bottomLimit > 0.0f && currentOffset > bottomLimit);
+
+            if (outOfBounds)
+            {
+                // Snap back into valid bounds with a spring animation.
+                // Clear the old end callback BEFORE calling stop() because stop()
+                // fires the current end callback when the animation is still running —
+                // which would set isRubberBanding=false and break the new snap-back.
+                float snapTarget = std::max(0.0f, std::min(currentOffset, clampMax));
+                this->contentOffsetY.setEndCallback([](bool) {});
+                this->contentOffsetY.stop();
+                this->contentOffsetY.reset();
+                isRubberBanding = true;  // set AFTER stop() so the cleared callback can't undo it
+                this->contentOffsetY.addStep(snapTarget, 300, EasingFunction::quadraticOut);
+                this->contentOffsetY.setTickCallback([this] { this->scrollAnimationTick(); });
+                this->contentOffsetY.setEndCallback([this](bool) { isRubberBanding = false; this->invalidate(); });
+                this->contentOffsetY.start();
+                this->invalidate();
+                return;
+            }
+
+            isRubberBanding = false;
+
+            float time   = state.acceleration.time.y * 1000.0f;
+            float newPos = currentOffset + state.acceleration.distance.y;
+            newScroll    = newPos;
+
+            // No meaningful fling — stop cleanly
+            if (newScroll == currentOffset || time < 50.0f)
+                return;
+
+            // Clamp fling target to valid range so we never fling into dead space
+            newScroll = std::max(0.0f, std::min(newScroll, clampMax));
+            animateScrolling(newScroll, time);
+        } },
+        PanAxis::VERTICAL));
+
+    // Stop scrolling on tap
+    addGestureRecognizer(new TapGestureRecognizer([this](aurore::TapGestureStatus status, Sound* soundToPlay)
+        {
+        if (status.state == GestureState::UNSURE)
+            this->contentOffsetY.stop(); }));
+
+    inputTypeSubscription = Application::getGlobalInputTypeChangeEvent()->subscribe([this](InputType type)
+        {
+        if (!focused && !childFocused)
+            return;
+
+        if (behavior == ScrollingBehavior::NATURAL && type == InputType::GAMEPAD)
+        {
+            Application::giveFocus(getDefaultFocus());
+            naturalScrollingCanScroll = false;
+        } });
+
+    setHideHighlightBackground(true);
+    setHideHighlightBorder(true);
+}
+
+void ScrollingFrame::setupScrollingIndicator()
+{
+    scrollingIndicator = new Rectangle();
+    scrollingIndicator->setThemeColor("color", "aurore/text");
+    scrollingIndicator->setSize(Size(SCROLLING_INDICATOR_WIDTH, 0));
+    scrollingIndicator->setCornerRadius(SCROLLING_INDICATOR_WIDTH / 2);
+    scrollingIndicator->detach();
+    Box::addView(scrollingIndicator);
+}
+
+void ScrollingFrame::updateScrollingIndicatior()
+{
+    float contentHeight = getContentHeight();
+    float viewHeight    = getHeight();
+
+    if (contentHeight <= viewHeight || !showScrollingIndicator)
+    {
+        scrollingIndicator->setAlpha(0);
+        return;
+    }
+
+    float scrollViewOffset = getContentOffsetY() / contentHeight * getHeight();
+
+    // The focus on the frame itself (scrolling through a long text, or
+    // between two lines out of sight) has no highlight: the indicator shows
+    // where it is, in the focus colour, for as long as it stays there
+    const bool showsFocus = focused && Application::getInputType() == InputType::GAMEPAD;
+    if (showsFocus != indicatorShowsFocus)
+    {
+        indicatorShowsFocus = showsFocus;
+        scrollingIndicator->setThemeColor("color", showsFocus ? "aurore/highlight/color1" : "aurore/text");
+        scrollingIndicator->setWidth(showsFocus ? SCROLLING_INDICATOR_WIDTH * 2 : SCROLLING_INDICATOR_WIDTH);
+        scrollingIndicator->setCornerRadius(showsFocus ? SCROLLING_INDICATOR_WIDTH : SCROLLING_INDICATOR_WIDTH / 2);
+        Application::requestRedraw();
+    }
+
+    float alpha = 0.3f;
+    if (showsFocus)
+        alpha = 1.0f;
+    else if (autoHideScrollingIndicator && effects::still())
+    {
+        // The screenshots that compare: a frame taken before or after the
+        // fade would differ, so it is never shown
+        alpha = 0;
+    }
+    else if (autoHideScrollingIndicator)
+    {
+        // Shown while the offset moves, then faded out over 300 ms once it
+        // has been still for 600 ms
+        Time now = getCPUTimeUsec() / 1000;
+        if (scrollViewOffset != lastIndicatorOffset)
+        {
+            lastIndicatorOffset = scrollViewOffset;
+            lastScrollTime      = now;
+        }
+        Time still = now - lastScrollTime;
+        if (still <= 900)
+            Application::requestRedraw(); // still showing or fading
+        if (still > 900)
+            alpha = 0;
+        else if (still > 600)
+            alpha = 0.3f * (1.0f - (float)(still - 600) / 300.0f);
+    }
+
+    scrollingIndicator->setAlpha(alpha);
+    scrollingIndicator->setHeight(viewHeight / contentHeight * viewHeight);
+
+    const float indicatorWidth = indicatorShowsFocus ? SCROLLING_INDICATOR_WIDTH * 2 : SCROLLING_INDICATOR_WIDTH;
+    // Nearer the edge on a compact screen, clear of the content's narrower margins
+    const float edge = Application::getWidthClass() == WidthClass::COMPACT ? dp(5) : 14;
+    scrollingIndicator->setDetachedPosition(getWidth() - edge - indicatorWidth, scrollViewOffset);
+}
+
+void ScrollingFrame::draw(NVGcontext* vg, float x, float y, float width, float height, Style style, FrameContext* ctx)
+{
+    updateScrollingIndicatior();
+    naturalScrollingBehaviour();
+
+    // Update scrolling - try until it works
+    if (this->updateScrollingOnNextFrame && this->updateScrolling(false))
+        this->updateScrollingOnNextFrame = false;
+
+    // Auto-correct: if content is out of bounds, not animating, and not in an
+    // active rubber-band drag, snap it back instantly.  This recovers from cases
+    // where a running snap-back animation was killed by a tap gesture UNSURE event
+    // that was then followed by a FAILED gesture (e.g., the user just tapped).
+    if (this->contentView && !isRubberBanding && !this->contentOffsetY.isRunning())
+    {
+        float contentH  = getContentHeight();
+        float btmLimit  = contentH - getScrollingAreaHeight();
+        float offset    = static_cast<float>(this->contentOffsetY);
+        float corrected = contentH <= getHeight()
+            ? 0.0f
+            : std::max(0.0f, std::min(offset, std::max(0.0f, btmLimit)));
+        if (offset != corrected)
+        {
+            this->contentOffsetY = corrected;
+            this->contentView->setTranslationY(-corrected);
+        }
+    }
+
+    // Enable scissoring
+    nvgSave(vg);
+    float scrollingTop    = this->getScrollingAreaTopBoundary();
+    float scrollingHeight = this->getScrollingAreaHeight();
+    nvgIntersectScissor(vg, x, scrollingTop, this->getWidth(), scrollingHeight);
+
+    // Draw children
+    Box::draw(vg, x, y, width, height, style, ctx);
+
+    // Disable scissoring
+    nvgRestore(vg);
+}
+
+void ScrollingFrame::naturalScrollingBehaviour()
+{
+    if (behavior != ScrollingBehavior::NATURAL || Application::getInputType() == InputType::TOUCH)
+        return;
+
+    if (focused || childFocused)
+    {
+        // If current focus view is outside scrolling bounds,
+        // change focus to this.
+        View* currentFocus = Application::getCurrentFocus();
+        if (!currentFocus || !currentFocus->getFrame().inscribed(getFrame()))
+        {
+            Application::giveFocus(this);
+        }
+
+        // If current focus equals this (a.k. no focus inside scroll),
+        // try to find the closest to the top focusable view and set it as current focus.
+        if (Application::getCurrentFocus() == this && Application::getInputType() == InputType::GAMEPAD)
+        {
+            View* topMostView = findTopMostFocusableView();
+
+            if (topMostView && topMostView != currentFocus)
+            {
+                Application::giveFocus(topMostView);
+                Application::getAudioPlayer()->play(Sound::SOUND_FOCUS_CHANGE);
+            }
+        }
+    }
+
+    if (!naturalScrollingCanScroll)
+        return;
+
+    if (focused || childFocused)
+    {
+        auto& state       = Application::getControllerState();
+        float bottomLimit = this->getContentHeight() - this->getScrollingAreaHeight();
+
+        // Sets true on border hit to play sound only once
+        static bool repeat = false;
+
+        // Do nothing if both up and down buttons pressed simultaneously
+        if (state.buttons[BUTTON_NAV_DOWN] && state.buttons[BUTTON_NAV_UP])
+            return;
+
+        if (state.buttons[BUTTON_NAV_DOWN])
+        {
+            naturalScrollingButtonProcessing(FocusDirection::DOWN, &repeat);
+        }
+
+        if (state.buttons[BUTTON_NAV_UP])
+        {
+            naturalScrollingButtonProcessing(FocusDirection::UP, &repeat);
+        }
+
+        // If there is focus inside scroll, and navigation buttons are not pressed
+        // disable natural scrolling
+        View* currentFocus = Application::getCurrentFocus();
+        if (!state.buttons[BUTTON_NAV_DOWN] && !state.buttons[BUTTON_NAV_UP] && (currentFocus != this))
+        {
+            naturalScrollingCanScroll = false;
+        }
+
+        // If navigation buttons are not pressed and content offset not above border
+        // unflag repeat value to play border hit sound if needed
+        if ((!state.buttons[BUTTON_NAV_DOWN] && !state.buttons[BUTTON_NAV_UP]) || (getContentOffsetY() > 0.01f && getContentOffsetY() < bottomLimit))
+        {
+            repeat = false;
+        }
+    }
+}
+
+View* ScrollingFrame::findTopMostFocusableView()
+{
+    Rect frame       = getFrame();
+    Point check      = Point(frame.getMidX(), frame.getMinY());
+    View* focusCheck = contentView->hitTest(check);
+    if (focusCheck)
+    {
+        View* focusCheckDefaultFocus = focusCheck->getDefaultFocus();
+        if (focusCheckDefaultFocus)
+            focusCheck = focusCheckDefaultFocus;
+
+        while (focusCheck && !focusCheck->getFrame().inscribed(frame))
+        {
+            focusCheck = focusCheck->getParent()->getNextFocus(FocusDirection::DOWN, focusCheck);
+        }
+
+        return focusCheck;
+    }
+
+    return nullptr;
+}
+
+void ScrollingFrame::naturalScrollingButtonProcessing(FocusDirection focusDirection, bool* repeat)
+{
+    float bottomLimit = this->getContentHeight() - this->getScrollingAreaHeight();
+    float newOffset   = getContentOffsetY();
+    bool isBorder     = false;
+    switch (focusDirection)
+    {
+        case FocusDirection::UP:
+            isBorder = getContentOffsetY() <= 0;
+            newOffset -= (1000.0f / Application::getFPS());
+            break;
+        case FocusDirection::DOWN:
+            isBorder = getContentOffsetY() >= bottomLimit;
+            newOffset += (1000.0f / Application::getFPS());
+            break;
+        default:
+            break;
+    }
+
+    setContentOffsetY(newOffset, false);
+    View* current = Application::getCurrentFocus();
+    if (!current || !current->hasParent())
+        return;
+    View* next = current->getParent()->getNextFocus(focusDirection, current);
+    if (next)
+    {
+        if (current != next->getDefaultFocus())
+        {
+            Application::giveFocus(next);
+            if (next != this)
+                Application::getAudioPlayer()->play(SOUND_FOCUS_CHANGE);
+        }
+    }
+    else if (!current->getFrame().inscribed(getFrame()))
+    {
+        Application::giveFocus(this);
+    }
+
+    if (isBorder && !*repeat)
+    {
+        *repeat = true;
+        Application::getCurrentFocus()->shakeHighlight(focusDirection);
+        Application::getAudioPlayer()->play(SOUND_FOCUS_ERROR);
+    }
+}
+
+void ScrollingFrame::addView(View* view)
+{
+    this->setContentView(view);
+}
+
+void ScrollingFrame::removeView(View* view, bool free)
+{
+    this->setContentView(nullptr);
+}
+
+void ScrollingFrame::setContentView(View* view)
+{
+    if (this->contentView)
+    {
+        Box::removeView(this->contentView); // will delete and call willDisappear
+        this->contentView = nullptr;
+    }
+
+    if (!view)
+        return;
+
+    // Setup the view and add it
+    this->contentView = view;
+
+    view->detach();
+    view->setCulled(false);
+    view->setWidth(this->getWidth());
+
+    Box::addView(view); // will invalidate the scrolling box, hence calling onLayout and invalidating the contentView
+}
+
+void ScrollingFrame::onLayout()
+{
+    if (this->contentView)
+    {
+        this->contentView->setWidth(this->getWidth());
+        this->contentView->invalidate();
+    }
+}
+
+float ScrollingFrame::getScrollingAreaTopBoundary()
+{
+    return this->getY();
+}
+
+float ScrollingFrame::getScrollingAreaHeight()
+{
+    return this->getHeight();
+}
+
+void ScrollingFrame::willAppear(bool resetState)
+{
+    this->prebakeScrolling();
+
+    // First scroll all the way to the top
+    // then wait for the first frame to scroll
+    // to the selected view if needed (only known then)
+    if (resetState && behavior == ScrollingBehavior::CENTERED)
+    {
+        this->updateScrollingOnNextFrame = true; // focus may have changed since
+    }
+
+    Box::willAppear(resetState);
+}
+
+void ScrollingFrame::prebakeScrolling()
+{
+    // Prebaked values for scrolling
+    float y      = this->getScrollingAreaTopBoundary();
+    float height = this->getScrollingAreaHeight();
+
+    this->middleY = y + height / 2;
+    this->bottomY = y + height;
+}
+
+void ScrollingFrame::startScrolling(bool animated, float newScroll)
+{
+    if (newScroll == this->contentOffsetY)
+        return;
+
+    // Reduced motion: straight there
+    if (animated && !Application::getReduceMotion())
+    {
+        Style style = Application::getStyle();
+        animateScrolling(newScroll, style["aurore/animations/highlight"]);
+    }
+    else
+    {
+        // Clear end callback before stop() to prevent a stale snap-back callback
+        // from firing and incorrectly resetting isRubberBanding.
+        this->contentOffsetY.setEndCallback([](bool) {});
+        this->contentOffsetY.stop();
+        this->contentOffsetY = newScroll;
+        this->scrollAnimationTick();
+        this->invalidate();
+    }
+}
+
+void ScrollingFrame::animateScrolling(float newScroll, float time)
+{
+    // Clear end callback before stop() to prevent stale snap-back callback from firing.
+    this->contentOffsetY.setEndCallback([](bool) {});
+    this->contentOffsetY.stop();
+
+    this->contentOffsetY.reset();
+
+    this->contentOffsetY.addStep(newScroll, time, EasingFunction::quadraticOut);
+
+    this->contentOffsetY.setTickCallback([this]
+        { this->scrollAnimationTick(); });
+
+    this->contentOffsetY.start();
+
+    this->invalidate();
+}
+
+void ScrollingFrame::setScrollingBehavior(ScrollingBehavior behavior)
+{
+    this->behavior = behavior;
+}
+
+float ScrollingFrame::getContentHeight()
+{
+    if (!this->contentView)
+        return 0;
+
+    return this->contentView->getHeight();
+}
+
+void ScrollingFrame::setContentOffsetY(float value, bool animated)
+{
+    startScrolling(animated, value);
+}
+
+void ScrollingFrame::scrollAnimationTick()
+{
+    if (this->contentView)
+    {
+        float contentHeight = this->getContentHeight();
+        float bottomLimit   = contentHeight - this->getScrollingAreaHeight();
+        float offset        = static_cast<float>(this->contentOffsetY);
+        float displayOffset = offset;
+
+        // Visual-only clamp: never use operator= here because that calls reset()
+        // which stops any running animation (including snap-back).
+        if (contentHeight <= getHeight())
+        {
+            displayOffset = 0.0f;
+        }
+        else if (!isRubberBanding)
+        {
+            displayOffset = std::max(0.0f, std::min(offset, std::max(0.0f, bottomLimit)));
+        }
+
+        this->contentView->setTranslationY(-displayOffset);
+    }
+}
+
+View* ScrollingFrame::getNextFocus(FocusDirection direction, View* currentView)
+{
+    // To prevent sound click on empty scroll view
+    float bottomLimit    = this->getContentHeight() - this->getScrollingAreaHeight();
+    float contentOffsetY = this->getContentOffsetY();
+    if (direction == FocusDirection::DOWN && contentOffsetY < (bottomLimit - 0.01f))
+        return this;
+
+    if (direction == FocusDirection::UP && this->getContentOffsetY() > 0.01f)
+        return this;
+
+    return Box::getNextFocus(direction, currentView);
+}
+
+View* ScrollingFrame::getDefaultFocus()
+{
+    if (this->getVisibility() != Visibility::VISIBLE)
+        return nullptr;
+
+    if (behavior == ScrollingBehavior::CENTERED)
+    {
+        View* focus = contentView->getDefaultFocus();
+        if (focus)
+            return focus;
+        else
+            return Box::getDefaultFocus();
+    }
+
+    View* focus = contentView->getDefaultFocus();
+    if (focus && focus->getFrame().inscribed(getFrame()))
+        return focus;
+
+    if (focus = findTopMostFocusableView(); focus && focus != this)
+        return focus;
+
+    return Box::getDefaultFocus();
+}
+
+void ScrollingFrame::onFocusGained()
+{
+    Box::onFocusGained();
+    naturalScrollingCanScroll = true;
+}
+
+void ScrollingFrame::onChildFocusGained(View* directChild, View* focusedView)
+{
+    Box::onChildFocusGained(directChild, focusedView);
+
+    this->childFocused = true;
+
+    // Start scrolling
+    if (Application::getInputType() == InputType::GAMEPAD && behavior == ScrollingBehavior::CENTERED)
+        this->updateScrolling(true);
+}
+
+void ScrollingFrame::onChildFocusLost(View* directChild, View* focusedView)
+{
+    // Must propagate to parent frames (mirrors onChildFocusGained and
+    // HScrollingFrame): nested ScrollingFrames (e.g. a RecyclingGrid inside a
+    // ScrollingFrame) otherwise kept a stale childFocused=true forever.
+    // naturalScrollingBehaviour() then hijacked the focus of a *different*
+    // activity whenever the old frame was drawn during a push transition.
+    Box::onChildFocusLost(directChild, focusedView);
+
+    this->childFocused = false;
+}
+
+View* ScrollingFrame::getParentNavigationDecision(View* from, View* newFocus, FocusDirection direction)
+{
+    if (behavior == ScrollingBehavior::CENTERED)
+        return Box::getParentNavigationDecision(from, newFocus, direction);
+
+    View* currentFocus = Application::getCurrentFocus();
+    if (!newFocus)
+    {
+        if (direction == FocusDirection::LEFT || direction == FocusDirection::RIGHT)
+            return nullptr;
+
+        if (from == contentView)
+        {
+            naturalScrollingCanScroll = true;
+            if (currentFocus && currentFocus->getFrame().inscribed(this->getFrame()))
+                return currentFocus;
+
+            return this;
+        }
+        return nullptr;
+    }
+    else
+    {
+        if (newFocus->getFrame().inscribed(this->getFrame()))
+            return newFocus;
+        else
+            naturalScrollingCanScroll = true;
+    }
+
+    if (currentFocus && currentFocus->getFrame().inscribed(this->getFrame()))
+        return currentFocus;
+
+    return this;
+}
+
+bool ScrollingFrame::updateScrolling(bool animated)
+{
+    if (!this->contentView)
+        return false;
+
+    View* focusedView = getDefaultFocus();
+    float localY      = focusedView ? focusedView->getLocalY() : 0.0f;
+    float itemHeight  = focusedView ? focusedView->getHeight() : 0.0f;
+    View* parent      = focusedView ? focusedView->getParent() : nullptr;
+
+    while (parent && dynamic_cast<ScrollingFrame*>(parent->getParent()) == nullptr)
+    {
+        localY += parent->getLocalY();
+        parent = parent->getParent();
+    }
+
+    int currentSelectionMiddleOnScreen = localY + itemHeight / 2;
+    float newScroll                    = currentSelectionMiddleOnScreen - this->getHeight() / 2;
+
+    float contentHeight = this->getContentHeight();
+    float bottomLimit   = contentHeight - this->getScrollingAreaHeight();
+
+    if (newScroll < 0)
+        newScroll = 0;
+
+    if (newScroll > bottomLimit)
+        newScroll = bottomLimit;
+
+    if (contentHeight <= getHeight())
+        newScroll = 0;
+
+    // Start animation
+    this->startScrolling(animated, newScroll);
+
+    return true;
+}
+
+Rect ScrollingFrame::getVisibleFrame()
+{
+    Rect frame = getLocalFrame();
+    frame.origin.y += this->contentOffsetY;
+    return frame;
+}
+
+enum Sound ScrollingFrame::getFocusSound()
+{
+    if (!contentView->getDefaultFocus())
+    {
+        return Box::getFocusSound();
+    }
+    return Sound::SOUND_NONE;
+}
+
+#define NO_PADDING fatal("Padding is not supported by aurore:ScrollingFrame, please set padding on the content view instead");
+
+void ScrollingFrame::setPadding(float top, float right, float bottom, float left)
+{
+    NO_PADDING
+}
+
+void ScrollingFrame::setPaddingTop(float top)
+{
+    NO_PADDING
+}
+
+void ScrollingFrame::setPaddingRight(float right)
+{
+    NO_PADDING
+}
+
+void ScrollingFrame::setPaddingBottom(float bottom)
+{
+    NO_PADDING
+}
+
+void ScrollingFrame::setPaddingLeft(float left) {
+    NO_PADDING
+}
+
+View* ScrollingFrame::create()
+{
+    return new ScrollingFrame();
+}
+
+ScrollingFrame::~ScrollingFrame()
+{
+    Application::getGlobalInputTypeChangeEvent()->unsubscribe(inputTypeSubscription);
+}
+
+} // namespace aurore

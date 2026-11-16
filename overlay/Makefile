@@ -7,7 +7,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 TARGET := NavidromeNX
 BUILD := build
 SOURCES := source ../vendor/sys-tune/ipc
-INCLUDES := ../src source ../vendor/sys-tune/ipc ../vendor/borealis/library/lib/extern/nanovg-deko3d/include
+INCLUDES := ../src source ../vendor/sys-tune/ipc ../vendor/aurore/library/include/aurore/extern
 include $(TOPDIR)/../vendor/libultrahand/ultrahand.mk
 APP_TITLE := Navidrome NX
 APP_AUTHOR := Navidrome NX contributors

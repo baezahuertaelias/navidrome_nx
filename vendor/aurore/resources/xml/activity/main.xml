@@ -1,0 +1,53 @@
+<!-- The demo's main screen: a rail of tabs, each a guided page. The tabs are
+     views of the demo's (demo/src/tab), registered for XML in demo_app.cpp;
+     their places in the rail are demo::Tab's. -->
+<aurore:AppletFrame
+    iconInterpolation="linear"
+    footerHidden="false">
+    <aurore:TabFrame
+        id="main_tabs"
+        title="@i18n/demo/title"
+        icon="@res/img/aurore_96.png">
+
+        <aurore:Tab label="@i18n/demo/tabs/home">
+            <HomeTab />
+        </aurore:Tab>
+
+        <aurore:Tab label="@i18n/demo/tabs/library">
+            <LibraryTab />
+        </aurore:Tab>
+
+        <aurore:Tab label="@i18n/demo/tabs/components">
+            <ComponentsTab />
+        </aurore:Tab>
+
+        <aurore:Tab label="@i18n/demo/tabs/motion">
+            <MotionTab />
+        </aurore:Tab>
+
+        <aurore:Tab label="@i18n/demo/tabs/text">
+            <TextTab />
+        </aurore:Tab>
+
+        <aurore:Tab label="@i18n/demo/tabs/themes">
+            <ThemesTab />
+        </aurore:Tab>
+
+        <aurore:Tab label="@i18n/demo/tabs/input">
+            <InputTab />
+        </aurore:Tab>
+
+        <aurore:Separator />
+
+        <aurore:Tab label="@i18n/demo/tabs/developers">
+            <DevelopersTab />
+        </aurore:Tab>
+
+        <aurore:Separator />
+
+        <aurore:Tab label="@i18n/demo/tabs/about">
+            <AboutTab />
+        </aurore:Tab>
+
+    </aurore:TabFrame>
+</aurore:AppletFrame>

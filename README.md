@@ -1,6 +1,6 @@
 # Navidrome NX
 
-A Nintendo Switch homebrew music client for Navidrome, built with **Borealis**
+A Nintendo Switch homebrew music client for Navidrome, built with **Aurore + Cadran**
 and the Subsonic API. Includes a separate **Ultrahand mini-player** backed by
 sys-tune for background playback.
 
@@ -15,6 +15,7 @@ Independent third-party software, not affiliated with or endorsed by Navidrome.
   song; returning preserves the parent page and selection.
 - **Playback:** previous/next, play/pause, stop, automatic queue advancement,
   elapsed/total time, album art, and a waveform driven by the mixed audio.
+- **Visualizers:** Waveform, Bars, and stereo VU meter, selected in Settings.
 - **Lyrics player:** centered lyrics, timed highlighting with a small enlargement
   and bold transition, automatic follow, manual scrolling, and three text sizes.
 - **Touchscreen:** tap controls and music cards; swipe lists and lyrics vertically
@@ -22,7 +23,7 @@ Independent third-party software, not affiliated with or endorsed by Navidrome.
 - **Song cache:** optional SD cache of up to 15 recently used songs.
 - **Android remote:** browser controls on the same Wi-Fi, paired using a QR code.
 - **Appearance:** animated Bubbles or XMB waves, background opacity, a subtle
-  three-minute Rainbow cycle, AMOLED black, and a collapsible sidebar.
+  three-minute Rainbow cycle, AMOLED black with optional Warp, and a collapsible sidebar.
 - **Localization:** English and Spanish selected from the Switch system language.
 
 Artists, Albums, and Songs have separate search/order/view choices while the app
@@ -61,6 +62,15 @@ before using the nxlink script:
 ```sh
 cp dist/navidrome_nx.nro navidrome_nx.nro
 ```
+
+For native Aurore screen and interaction checks (no Switch required):
+
+```sh
+docker build -t navidrome-aurore-ui-test -f tests/ui.Dockerfile .
+docker run --rm -v "$PWD:/app" navidrome-aurore-ui-test
+```
+
+Rendered screens are saved under `build.ui/screenshots/`.
 
 ## Install and sign in
 
@@ -229,7 +239,7 @@ login saved by the app. Selecting a song downloads its displayed page of up to
 10 tracks to SD before queueing. sys-tune can continue playing the cached page
 with the overlay closed.
 
-This is a **separate queue** from the Borealis app and Android remote. It does
+This is a **separate queue** from the Aurore app and Android remote. It does
 not provide unlimited Navidrome streaming in the background. See
 [installation, controls, cache limits, licensing, and hardware-test status](docs/ultrahand.md).
 The [original feasibility assessment](docs/ultrahand-feasibility.md) records a
@@ -260,8 +270,9 @@ Tests use mock servers and temporary files; no real credentials are needed.
 They cover authentication, escaping, API errors/cancellation/byte limits, library
 paging and sorting, artwork, lyrics, clock timing, settings/login persistence,
 translations, remote authorization and QR decoding, audio waveform capture,
-15-song cache eviction/account separation/storage failures, touch gestures, and
-actual fallback-font icon centering. Overlay tests cover browsing and cache
+15-song cache eviction/account separation/storage failures. The Aurore harness
+checks native touch/controller interactions, login, library views, lyrics, and Settings
+in English and Spanish. Overlay tests cover browsing and cache
 protection/cancellation; its build script checks the exported NRO/ExeFS headers,
 sysmodule program ID, and boot flag.
 
@@ -270,9 +281,9 @@ checks. **Previously confirmed on Switch:** library/playback, Home shelves,
 sidebar/icons, lyrics navigation, web remote QR pairing, Settings tabs,
 search/order/list-grid controls, pagination, playlists, and waveform behavior.
 
-**Latest app build:** uploaded with nxlink and confirmed working by the user on
-Switch, including the latest UI corrections. Manual lyrics scrolling is opt-in;
-Settings L/R tabs, Favorites artwork, and the restored XMB waves are included.
+**Aurore migration branch:** `feat/aurore-ui` replaces the UI framework. The
+previous Switch confirmations above apply to the Borealis baseline, not this
+branch. Aurore hardware validation is pending. See [migration notes](docs/aurore-migration.md).
 
 **Ultrahand hardware validation is pending:** in-game audio mixing, overlay
 memory use, suspend/resume, and firmware / Atmosphère / Ultrahand compatibility
@@ -286,7 +297,7 @@ have not been established by local tests or the app's Switch confirmation.
 - Navidrome must support MP3 transcoding for non-MP3 sources.
 - Lyrics synchronization uses an estimated playback clock, without word-level
   karaoke or audio-device latency adjustment.
-- Borealis UI sounds are disabled so SDL owns the app's audio renderer.
+- Aurore uses its null UI audio driver on Switch so SDL owns the audio renderer.
 - The app's playback ends when the app exits; background playback belongs to
   the separate sys-tune overlay queue.
 
@@ -299,7 +310,7 @@ placeholders when translating. Music metadata and lyrics remain server-provided.
 
 | Path | Contents |
 | --- | --- |
-| `src/` | Borealis app, API, playback, settings, remote, cache |
+| `src/` | Aurore app, API, playback, settings, remote, cache |
 | `overlay/` | Native Ultrahand player and browsing/cache code |
 | `resources/` | Fonts, artwork, translations, browser remote |
 | `vendor/` | Included dependencies and license notices |
@@ -313,10 +324,10 @@ included fonts; regeneration scripts require Python fonttools.
 
 ## Upstream and notices
 
-- [Borealis](https://github.com/natinusala/borealis):
-  `20e2d33b6c4ffce139ce304c503c04f5b94da920`, Apache-2.0 and included third-party
-  notices. Local changes cover SDK compatibility, SDL-owned audio, artwork,
-  activity transitions, label metrics, scrolling/focus, and touch input.
+- [Aurore](https://github.com/JigSawFr/Aurore), v1.1.0:
+  `e8ea3dcfc194c9b0271f064ba67cfe462c9baad1`. Core Apache-2.0; Cadran
+  GPL-3.0-or-later. The full-screen app is GPL-3.0-or-later; see [LICENSE](LICENSE)
+  and [NOTICE](NOTICE). Vendored components retain their own licenses.
 - [libultrahand](https://github.com/ppkantorski/libultrahand):
   `548e491e19d791120ad3de05b4a7efea4ca00e34`, included GPL-2.0 / sub-license notices.
 - [sys-tune](https://github.com/HookedBehemoth/sys-tune):

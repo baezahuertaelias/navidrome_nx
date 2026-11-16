@@ -1,0 +1,77 @@
+// SPDX-FileCopyrightText: 2019-2021 natinusala
+// SPDX-FileCopyrightText: 2019 p-sam
+// SPDX-FileCopyrightText: 2021 XITRIX
+// SPDX-License-Identifier: Apache-2.0
+
+#pragma once
+
+#include <string>
+#include <aurore/core/box.hpp>
+#include <aurore/core/event.hpp>
+#include <aurore/views/applet_frame.hpp>
+#include <aurore/views/hint.hpp>
+#include <aurore/views/recycler.hpp>
+
+namespace aurore
+{
+
+// Fired when the user has selected a value
+//
+// Parameter is either the selected value index
+// or -1 if the user cancelled
+//
+// Assume that the Dropdown is deleted
+// as soon as this function is called
+typedef Event<int> ValueSelectedEvent;
+
+// Allows the user to select between multiple
+// values
+class Dropdown : public Box, private RecyclerDataSource
+{
+  private:
+    AURORE_BIND(RecyclerFrame, recycler, "aurore/dropdown/recycler");
+    AURORE_BIND(Box, header, "aurore/dropdown/header");
+    AURORE_BIND(Label, title, "aurore/dropdown/title_label");
+    AURORE_BIND(Box, content, "aurore/dropdown/content");
+    AURORE_BIND(AppletFrame, applet, "aurore/dropdown/applet");
+    ValueSelectedEvent::Callback cb;
+    ValueSelectedEvent::Callback dismissCb;
+    std::vector<std::string> values;
+    int selected;
+    Animatable showOffset = 0;
+    Event<RecyclerCell*> cellFocusDidChangeEvent;
+
+    int numberOfRows(RecyclerFrame* recycler, int section) override;
+    RecyclerCell* cellForRow(RecyclerFrame* recycler, IndexPath index) override;
+    void didSelectRowAt(RecyclerFrame* recycler, IndexPath index) override;
+
+    void offsetTick();
+
+  protected:
+    float getShowAnimationDuration(TransitionAnimation animation) override;
+
+    // Said with its title when it opens, before its row.
+    AccessibilityRole getDefaultAccessibilityRole() override { return AccessibilityRole::LIST; }
+    std::string getDefaultAccessibilityLabel() override { return this->title->getFullText(); }
+
+  public:
+    Dropdown(std::string title, std::vector<std::string> values, ValueSelectedEvent::Callback cb, int selected = 0, ValueSelectedEvent::Callback dismissCb = [](int) {});
+
+    void show(std::function<void(void)> cb, bool animate, float animationDuration) override;
+    void hide(std::function<void(void)> cb, bool animated, float animationDuration) override;
+
+    virtual AppletFrame* getAppletFrame() override;
+    virtual View* getParentNavigationDecision(View* from, View* newFocus, FocusDirection direction) override;
+
+    Event<RecyclerCell*>* getCellFocusDidChangeEvent()
+    {
+        return &cellFocusDidChangeEvent;
+    }
+
+    bool isTranslucent() override
+    {
+        return true || View::isTranslucent();
+    }
+};
+
+} // namespace aurore

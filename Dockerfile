@@ -4,7 +4,7 @@ CMD ["make", "-j4"]
 
 FROM toolchain AS build
 COPY . .
-RUN --mount=type=cache,target=/app/build.nx make -j4
+RUN --mount=type=cache,target=/app/build.aurore make -j4
 
 FROM toolchain AS overlay-build
 COPY . .

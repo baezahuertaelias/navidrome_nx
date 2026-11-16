@@ -1,5 +1,5 @@
 #pragma once
-#include <borealis.hpp>
+#include "music_ui.hpp"
 #include <cassert>
 #include <chrono>
 #include "bubbles.hpp"
@@ -7,13 +7,13 @@
 #include "warp.hpp"
 
 // Native gradient circles keep the animation independent of image assets and frame rate.
-class MusicSurface : public brls::Box {
+class MusicSurface : public aurore::Box {
     std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
     double animationTime = 0;
 public:
-    MusicSurface() : brls::Box(brls::Axis::COLUMN) {}
+    MusicSurface() : aurore::Box(aurore::Axis::COLUMN) {}
     void draw(NVGcontext* vg, float x, float y, float width, float height,
-        brls::Style style, brls::FrameContext* context) override {
+        aurore::Style style, aurore::FrameContext* context) override {
         const auto now = std::chrono::steady_clock::now();
         const double colorSeconds = std::chrono::duration<double>(now.time_since_epoch()).count();
         const float hue = rainbowHue(colorSeconds);
@@ -101,26 +101,26 @@ public:
             }
         }
         nvgRestore(vg);
-        brls::Box::draw(vg, x, y, width, height, style, context);
+        aurore::Box::draw(vg, x, y, width, height, style, context);
     }
 };
 
 inline void applyMusicTheme() {
-    for (auto theme : {brls::getLightTheme(), brls::getDarkTheme()}) {
-        theme.addColor("brls/background", nvgRGB(18, 25, 45));
-        theme.addColor("brls/text", nvgRGB(245, 246, 255));
-        theme.addColor("brls/highlight/background", nvgRGB(47, 50, 83));
-        theme.addColor("brls/highlight/color1", nvgRGB(104, 218, 255));
-        theme.addColor("brls/highlight/color2", nvgRGB(160, 139, 255));
-        theme.addColor("brls/button/default_enabled_background", nvgRGBA(98, 108, 152, 44));
-        theme.addColor("brls/button/default_disabled_background", nvgRGBA(98, 108, 152, 20));
-        theme.addColor("brls/button/default_enabled_text", nvgRGB(244, 245, 255));
-        theme.addColor("brls/button/default_disabled_text", nvgRGB(135, 143, 168));
-        theme.addColor("brls/button/primary_enabled_background", nvgRGB(119, 76, 220));
-        theme.addColor("brls/button/primary_enabled_text", nvgRGB(255, 255, 255));
-        theme.addColor("brls/button/primary_disabled_background", nvgRGB(49, 45, 75));
-        theme.addColor("brls/button/primary_disabled_text", nvgRGB(145, 141, 164));
-        assert(theme["brls/button/primary_enabled_background"].r == nvgRGB(119, 76, 220).r);
-        assert(theme["brls/button/default_disabled_text"].r == nvgRGB(135, 143, 168).r);
+    for (auto* theme : {&aurore::Theme::getLightTheme(), &aurore::Theme::getDarkTheme()}) {
+        theme->addColor("aurore/background", nvgRGB(18, 25, 45));
+        theme->addColor("aurore/text", nvgRGB(245, 246, 255));
+        theme->addColor("aurore/highlight/background", nvgRGB(47, 50, 83));
+        theme->addColor("aurore/highlight/color1", nvgRGB(104, 218, 255));
+        theme->addColor("aurore/highlight/color2", nvgRGB(160, 139, 255));
+        theme->addColor("aurore/button/default_enabled_background", nvgRGBA(98, 108, 152, 44));
+        theme->addColor("aurore/button/default_disabled_background", nvgRGBA(98, 108, 152, 20));
+        theme->addColor("aurore/button/default_enabled_text", nvgRGB(244, 245, 255));
+        theme->addColor("aurore/button/default_disabled_text", nvgRGB(135, 143, 168));
+        theme->addColor("aurore/button/primary_enabled_background", nvgRGB(119, 76, 220));
+        theme->addColor("aurore/button/primary_enabled_text", nvgRGB(255, 255, 255));
+        theme->addColor("aurore/button/primary_disabled_background", nvgRGB(49, 45, 75));
+        theme->addColor("aurore/button/primary_disabled_text", nvgRGB(145, 141, 164));
+        assert((*theme)["aurore/button/primary_enabled_background"].r == nvgRGB(119, 76, 220).r);
+        assert((*theme)["aurore/button/default_disabled_text"].r == nvgRGB(135, 143, 168).r);
     }
 }
