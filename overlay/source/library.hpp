@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 #include "api.hpp"
+#include "favorites.hpp"
 #include <chrono>
+#include <unistd.h>
 
 namespace overlay {
 constexpr size_t PageSize = 10;
@@ -21,7 +23,7 @@ inline std::vector<Entry> slice(const std::vector<Entry>& entries, size_t offset
     if (offset >= entries.size()) return {};
     return {entries.begin() + offset, entries.begin() + std::min(entries.size(), offset + PageSize)};
 }
-inline Page browse(const Api& api, Page page) {
+inline Page browse(const Api& api, Page page, const char* favoritesPath = "sdmc:/switch/navidrome_nx/overlay-library.tmp") {
     std::vector<Entry> all;
     const auto token = salt();
     auto get = [&](const char* endpoint, std::vector<std::pair<std::string, std::string>> params = {}) {
@@ -29,7 +31,15 @@ inline Page browse(const Api& api, Page page) {
     };
     switch (page.collection) {
         case Collection::Favorites: {
-            auto root = get("getStarred2"); all = Api::entries(root.get(), "starred2", "song"); break;
+            const char* path = favoritesPath;
+            auto cleanup = [path](FILE* file) { std::fclose(file); ::unlink(path); };
+            std::unique_ptr<FILE, decltype(cleanup)> file(std::fopen(path, "w+b"), cleanup);
+            if (!file) throw std::runtime_error("Cannot write temporary Favorites response");
+            api.request("getStarred2", {}, token, 8 * 1024 * 1024, file.get());
+            if (std::fflush(file.get()) || std::fseek(file.get(), 0, SEEK_SET))
+                throw std::runtime_error("Cannot read temporary Favorites response");
+            page.items = readFavorites(file.get(), page.offset, PageSize, page.more);
+            return page;
         }
         case Collection::Albums: {
             auto root = get("getAlbumList2", {{"type", "alphabeticalByName"}, {"size", std::to_string(PageSize + 1)}, {"offset", std::to_string(page.offset)}});

@@ -207,6 +207,11 @@ public:
         if (focusDelay && --focusDelay == 0 && !rows.empty()) requestFocus(rows[restoreIndex], tsl::FocusDirection::None, false);
         if (job.valid() && job.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             try { auto done = job.get(); activeApi.reset(); done(); }
+            catch (const ApiError& error) {
+                activeApi.reset();
+                status(error.key == "response_memory"
+                    ? tr("Not enough memory for server response", "Memoria insuficiente para la respuesta") : error.what());
+            }
             catch (const std::exception& error) { activeApi.reset(); status(error.what()); }
         }
         const auto now = std::chrono::steady_clock::now();
